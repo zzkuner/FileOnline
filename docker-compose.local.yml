@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: file-online-nginx-local
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: file-online-backend-local
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MINIO_BUCKET=${MINIO_BUCKET}
+      - SECRET_KEY=${SECRET_KEY}
+      - WECHAT_PAY_MCH_ID=${WECHAT_PAY_MCH_ID}
+      - WECHAT_PAY_MCH_KEY=${WECHAT_PAY_MCH_KEY}
+      - WECHAT_PAY_APP_ID=${WECHAT_PAY_APP_ID}
+      - WECHAT_PAY_NOTIFY_URL=${WECHAT_PAY_NOTIFY_URL}
+      - ALIPAY_APP_ID=${ALIPAY_APP_ID}
+      - ALIPAY_PRIVATE_KEY_PATH=${ALIPAY_PRIVATE_KEY_PATH}
+      - ALIPAY_PUBLIC_KEY_PATH=${ALIPAY_PUBLIC_KEY_PATH}
+      - ALIPAY_NOTIFY_URL=${ALIPAY_NOTIFY_URL}
+      - PAYMENT_TEST_MODE=${PAYMENT_TEST_MODE}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_FROM=${MAIL_FROM}
+      - MAIL_SERVER=${MAIL_SERVER}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_STARTTLS=${MAIL_STARTTLS}
+      - MAIL_SSL_TLS=${MAIL_SSL_TLS}
+    depends_on:
+      - db
+      - redis
+      - minio
+    volumes:
+      - ./backend:/app  # 挂载代码目录用于热重载
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: file-online-frontend-local
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/app  # 挂载代码目录用于热重载
+    restart: unless-stopped
+
+  db:
+    image: postgres:13
+    container_name: file-online-db-local
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: file-online-redis-local
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio
+    container_name: file-online-minio-local
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  minio_data:

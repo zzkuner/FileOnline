@@ -1,0 +1,31 @@
+{
+  "name": "file-online-frontend",
+  "version": "1.0.0",
+  "description": "文件在线展示平台前端",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "vue",
+    "file",
+    "upload",
+    "online"
+  ],
+  "author": "Developer",
+  "license": "MIT",
+  "dependencies": {
+    "vue": "^3.2.0",
+    "vue-router": "^4.0.0",
+    "pinia": "^2.0.0",
+    "axios": "^0.27.0",
+    "@element-plus/icons-vue": "^2.0.0",
+    "element-plus": "^2.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^3.0.0",
+    "vite": "^3.0.0"
+  }
+}

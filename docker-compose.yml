@@ -1,0 +1,107 @@
+services:
+  db:
+    image: postgres:13
+    container_name: file-online-db
+    environment:
+      POSTGRES_DB: fileonline
+      POSTGRES_USER: fileonline
+      POSTGRES_PASSWORD: fileonline
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  redis:
+    image: redis:6-alpine
+    container_name: file-online-redis
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    container_name: file-online-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  init-db:
+    build: .
+    container_name: file-online-init
+    depends_on:
+      - db
+      - redis
+      - minio
+    environment:
+      DATABASE_URL: postgresql://fileonline:fileonline@db:5432/fileonline
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET_NAME: fileonline
+      JWT_SECRET_KEY: your_jwt_secret_key_change_in_production
+      WECHAT_PAY_MCH_ID: ${WECHAT_PAY_MCH_ID}
+      WECHAT_PAY_MCH_KEY: ${WECHAT_PAY_MCH_KEY}
+      WECHAT_PAY_APP_ID: ${WECHAT_PAY_APP_ID}
+      ALIPAY_APP_ID: ${ALIPAY_APP_ID}
+      ALIPAY_PRIVATE_KEY_PATH: ${ALIPAY_PRIVATE_KEY_PATH}
+      ALIPAY_PUBLIC_KEY_PATH: ${ALIPAY_PUBLIC_KEY_PATH}
+      PAYMENT_TEST_MODE: true
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./keys:/app/keys  # 支付宝密钥文件挂载
+      - ./init_admin.py:/app/init_admin.py  # 挂载初始化脚本
+    working_dir: /app
+    command: python init_admin.py
+
+  backend:
+    build: .
+    container_name: file-online-backend
+    depends_on:
+      - db
+      - redis
+      - minio
+      - init-db  # 依赖初始化服务
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://fileonline:fileonline@db:5432/fileonline
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET_NAME: fileonline
+      JWT_SECRET_KEY: your_jwt_secret_key_change_in_production
+      WECHAT_PAY_MCH_ID: ${WECHAT_PAY_MCH_ID}
+      WECHAT_PAY_MCH_KEY: ${WECHAT_PAY_MCH_KEY}
+      WECHAT_PAY_APP_ID: ${WECHAT_PAY_APP_ID}
+      ALIPAY_APP_ID: ${ALIPAY_APP_ID}
+      ALIPAY_PRIVATE_KEY_PATH: ${ALIPAY_PRIVATE_KEY_PATH}
+      ALIPAY_PUBLIC_KEY_PATH: ${ALIPAY_PUBLIC_KEY_PATH}
+      PAYMENT_TEST_MODE: true
+    volumes:
+      - ./keys:/app/keys  # 支付宝密钥文件挂载
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: file-online-frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    environment:
+      VUE_APP_API_URL: http://localhost:8000
+
+volumes:
+  postgres_data:
+  minio_data:
