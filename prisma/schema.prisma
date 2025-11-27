@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 用户模型
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  role          String   @default("USER") // USER or ADMIN
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  files         File[]
+}
+
+// 文件模型
+model File {
+  id            String   @id @default(cuid())
+  userId        String
+  originalName  String
+  storagePath   String   // 存储路径
+  processedPath String?  // 处理后的路径（如视频转码后的 HLS 路径）
+  fileType      String   // PDF, VIDEO, IMAGE, PPT
+  mimeType      String
+  fileSize      Int
+  status        String   @default("PROCESSING") // PROCESSING, READY, FAILED
+  metadata      String?  // JSON 字符串，存储额外信息（如视频时长、PDF 页数等）
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  links         Link[]
+  
+  @@index([userId])
+}
+
+// 追踪链接模型
+model Link {
+  id            String   @id @default(cuid())
+  fileId        String
+  slug          String   @unique // 短链接标识符
+  name          String   // 用户自定义名称（内部管理用），如 "投递腾讯"
+  description   String?  // 访问者描述（支持Markdown）
+  displayTitle  String?  // 访问者看到的标题（可选，不填则不显示）
+  displayMode   String   @default("DEFAULT") // MINIMAL (纯净), DEFAULT (标准), CARD (卡片)
+  showFilename  Boolean  @default(false) // 是否向访问者显示文件名
+  showFilesize  Boolean  @default(false) // 是否向访问者显示文件大小
+  coverImage    String?  // 封面图路径（CARD模式使用）
+  isActive      Boolean  @default(true)
+  password      String?  // 访问密码（可选）
+  expiresAt     DateTime? // 过期时间（可选）
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  file          File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  visits        Visit[]
+  
+  @@index([fileId])
+  @@index([slug])
+}
+
+// 访问记录模型
+model Visit {
+  id            String   @id @default(cuid())
+  linkId        String
+  visitorIp     String?
+  userAgent     String?
+  deviceType    String?  // Mobile, Desktop, Tablet
+  browser       String?
+  os            String?
+  location      String?  // 地理位置（IP 解析）
+  referrer      String?
+  startedAt     DateTime @default(now())
+  endedAt       DateTime?
+  duration      Int?     // 访问时长（秒）
+  
+  link          Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  events        Event[]
+  
+  @@index([linkId])
+  @@index([startedAt])
+}
+
+// 事件记录模型（用于热力图等详细追踪）
+model Event {
+  id            String   @id @default(cuid())
+  visitId       String
+  eventType     String   // PAGE_VIEW, VIDEO_PROGRESS, SCROLL, CLICK 等
+  payload       String   // JSON 字符串，存储事件详细数据
+  timestamp     DateTime @default(now())
+  
+  visit         Visit    @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  
+  @@index([visitId])
+  @@index([timestamp])
+}
