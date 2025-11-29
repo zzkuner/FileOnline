@@ -57,7 +57,9 @@ export default function FileDetailsPage() {
     const [newLinkShowFilesize, setNewLinkShowFilesize] = useState(false)
     const [newLinkCoverImage, setNewLinkCoverImage] = useState('')
     const [newLinkPassword, setNewLinkPassword] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
     const [newLinkExpiry, setNewLinkExpiry] = useState('')
+    const [newLinkMaxVisits, setNewLinkMaxVisits] = useState('')
 
     const [creating, setCreating] = useState(false)
     const [saving, setSaving] = useState(false)
@@ -103,7 +105,9 @@ export default function FileDetailsPage() {
         setNewLinkShowFilesize(false)
         setNewLinkCoverImage('')
         setNewLinkPassword('')
+        setShowPassword(false)
         setNewLinkExpiry('')
+        setNewLinkMaxVisits('')
     }
 
     const handleCreateLink = async (e: React.FormEvent) => {
@@ -125,7 +129,8 @@ export default function FileDetailsPage() {
                     showFilesize: newLinkShowFilesize,
                     coverImage: newLinkCoverImage || null,
                     password: newLinkPassword || null,
-                    expiresAt: newLinkExpiry || null
+                    expiresAt: newLinkExpiry || null,
+                    maxVisits: newLinkMaxVisits || null
                 })
             })
 
@@ -164,7 +169,8 @@ export default function FileDetailsPage() {
                     showFilesize: newLinkShowFilesize,
                     coverImage: newLinkCoverImage || null,
                     password: newLinkPassword || null,
-                    expiresAt: newLinkExpiry || null
+                    expiresAt: newLinkExpiry || null,
+                    maxVisits: newLinkMaxVisits || null
                 })
             })
 
@@ -196,7 +202,9 @@ export default function FileDetailsPage() {
         setNewLinkShowFilesize(link.showFilesize || false)
         setNewLinkCoverImage(link.coverImage || '')
         setNewLinkPassword('')
+        setShowPassword(false)
         setNewLinkExpiry(link.expiresAt ? link.expiresAt.slice(0, 16) : '')
+        setNewLinkMaxVisits(link.maxVisits ? link.maxVisits.toString() : '')
         setShowEditModal(true)
     }
 
@@ -437,6 +445,12 @@ export default function FileDetailsPage() {
                                                         <span>🔒 密码保护</span>
                                                     </>
                                                 )}
+                                                {link.maxVisits && (
+                                                    <>
+                                                        <span>•</span>
+                                                        <span>限制: {link.maxVisits} 次</span>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -501,431 +515,484 @@ export default function FileDetailsPage() {
             </div>
 
             {/* Create Link Modal */}
-            {showCreateModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full shadow-2xl max-h-[92vh] flex flex-col">
-                        <div className="flex-shrink-0 p-6 pb-4 border-b">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-2xl font-bold">创建追踪链接</h3>
-                                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                                    <X className="w-5 h-5" />
-                                </button>
+            {
+                showCreateModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full shadow-2xl max-h-[92vh] flex flex-col">
+                            <div className="flex-shrink-0 p-6 pb-4 border-b">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-2xl font-bold">创建追踪链接</h3>
+                                    <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-6">
-                            <form onSubmit={handleCreateLink} className="space-y-4" id="create-link-form">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">链接名称（内部管理用）</label>
-                                    <input
-                                        type="text"
-                                        value={newLinkName}
-                                        onChange={e => setNewLinkName(e.target.value)}
-                                        placeholder="例如：投递腾讯简历"
-                                        className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">描述（支持 Markdown）</label>
-                                    <textarea
-                                        value={newLinkDesc}
-                                        onChange={e => setNewLinkDesc(e.target.value)}
-                                        placeholder="支持 **粗体**、*斜体*、[链接](url)等格式..."
-                                        className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none h-24 resize-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">展示模式</label>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setNewLinkMode('MINIMAL')}
-                                            className={`p-3 rounded-xl border text-left transition-all ${newLinkMode === 'MINIMAL' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-slate-50'}`}
-                                        >
-                                            <div className="font-medium mb-1 text-sm">纯净</div>
-                                            <div className="text-xs text-muted-foreground">只有内容</div>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setNewLinkMode('DEFAULT')}
-                                            className={`p-3 rounded-xl border text-left transition-all ${newLinkMode === 'DEFAULT' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-slate-50'}`}
-                                        >
-                                            <div className="font-medium mb-1 text-sm">标准</div>
-                                            <div className="text-xs text-muted-foreground">带描述</div>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setNewLinkMode('CARD')}
-                                            className={`p-3 rounded-xl border text-left transition-all ${newLinkMode === 'CARD' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-slate-50'}`}
-                                        >
-                                            <div className="font-medium mb-1 text-sm">卡片</div>
-                                            <div className="text-xs text-muted-foreground">营销用</div>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {(newLinkMode === 'DEFAULT' || newLinkMode === 'CARD') && (
+                            <div className="flex-1 overflow-y-auto p-6">
+                                <form onSubmit={handleCreateLink} className="space-y-4" id="create-link-form">
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">
-                                            访问者标题 {newLinkMode === 'CARD' && <span className="text-red-500">*</span>}
-                                        </label>
+                                        <label className="block text-sm font-medium mb-1">链接名称（内部管理用）</label>
                                         <input
                                             type="text"
-                                            value={newLinkDisplayTitle}
-                                            onChange={e => setNewLinkDisplayTitle(e.target.value)}
-                                            placeholder={newLinkMode === 'CARD' ? '吸引人的标题，如：免费领取学习资料' : '访问者看到的标题（可选）'}
-                                            className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800focus:ring-2 focus:ring-primary outline-none"
-                                            required={newLinkMode === 'CARD'}
+                                            value={newLinkName}
+                                            onChange={e => setNewLinkName(e.target.value)}
+                                            placeholder="例如：投递腾讯简历"
+                                            className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
+                                            required
                                         />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">描述（支持 Markdown）</label>
+                                        <textarea
+                                            value={newLinkDesc}
+                                            onChange={e => setNewLinkDesc(e.target.value)}
+                                            placeholder="支持 **粗体**、*斜体*、[链接](url)等格式..."
+                                            className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none h-24 resize-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">展示模式</label>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setNewLinkMode('MINIMAL')}
+                                                className={`p-3 rounded-xl border text-left transition-all ${newLinkMode === 'MINIMAL' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-slate-50'}`}
+                                            >
+                                                <div className="font-medium mb-1 text-sm">纯净</div>
+                                                <div className="text-xs text-muted-foreground">只有内容</div>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setNewLinkMode('DEFAULT')}
+                                                className={`p-3 rounded-xl border text-left transition-all ${newLinkMode === 'DEFAULT' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-slate-50'}`}
+                                            >
+                                                <div className="font-medium mb-1 text-sm">标准</div>
+                                                <div className="text-xs text-muted-foreground">带描述</div>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setNewLinkMode('CARD')}
+                                                className={`p-3 rounded-xl border text-left transition-all ${newLinkMode === 'CARD' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-slate-50'}`}
+                                            >
+                                                <div className="font-medium mb-1 text-sm">卡片</div>
+                                                <div className="text-xs text-muted-foreground">营销用</div>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {(newLinkMode === 'DEFAULT' || newLinkMode === 'CARD') && (
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                访问者标题 {newLinkMode === 'CARD' && <span className="text-red-500">*</span>}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newLinkDisplayTitle}
+                                                onChange={e => setNewLinkDisplayTitle(e.target.value)}
+                                                placeholder={newLinkMode === 'CARD' ? '吸引人的标题，如：免费领取学习资料' : '访问者看到的标题（可选）'}
+                                                className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800focus:ring-2 focus:ring-primary outline-none"
+                                                required={newLinkMode === 'CARD'}
+                                            />
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                {newLinkMode === 'CARD' ? '这是访问者首先看到的内容' : '不填则不显示标题'}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {newLinkMode === 'DEFAULT' && (
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-medium mb-2">显示选项</label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={newLinkShowFilename}
+                                                    onChange={e => setNewLinkShowFilename(e.target.checked)}
+                                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                />
+                                                <span className="text-sm">显示文件名</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={newLinkShowFilesize}
+                                                    onChange={e => setNewLinkShowFilesize(e.target.checked)}
+                                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                />
+                                                <span className="text-sm">显示文件大小</span>
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    {newLinkMode === 'CARD' && (
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">封面图链接（可选）</label>
+                                            <input
+                                                type="url"
+                                                value={newLinkCoverImage}
+                                                onChange={e => setNewLinkCoverImage(e.target.value)}
+                                                placeholder="https://example.com/cover.jpg"
+                                                className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">修改密码</label>
+                                        <div className="relative">
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                value={newLinkPassword}
+                                                onChange={e => setNewLinkPassword(e.target.value)}
+                                                placeholder={editingLink?.password ? "留空保持不变" : "设置新密码"}
+                                                className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none pr-10"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                            >
+                                                {showPassword ? <Eye className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
                                         <p className="text-xs text-muted-foreground mt-1">
-                                            {newLinkMode === 'CARD' ? '这是访问者首先看到的内容' : '不填则不显示标题'}
+                                            {editingLink?.password ? '当前有密码保护，留空保持原密码' : '留空表示无密码'}
                                         </p>
                                     </div>
-                                )}
 
-                                {newLinkMode === 'DEFAULT' && (
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium mb-2">显示选项</label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={newLinkShowFilename}
-                                                onChange={e => setNewLinkShowFilename(e.target.checked)}
-                                                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                            />
-                                            <span className="text-sm">显示文件名</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={newLinkShowFilesize}
-                                                onChange={e => setNewLinkShowFilesize(e.target.checked)}
-                                                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                            />
-                                            <span className="text-sm">显示文件大小</span>
-                                        </label>
-                                    </div>
-                                )}
-
-                                {newLinkMode === 'CARD' && (
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">封面图链接（可选）</label>
+                                        <label className="block text-sm font-medium mb-1">过期时间</label>
                                         <input
-                                            type="url"
-                                            value={newLinkCoverImage}
-                                            onChange={e => setNewLinkCoverImage(e.target.value)}
-                                            placeholder="https://example.com/cover.jpg"
+                                            type="datetime-local"
+                                            value={newLinkExpiry}
+                                            onChange={e => setNewLinkExpiry(e.target.value)}
                                             className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
                                         />
-                                        <p className="text-xs text-muted-foreground mt-1">留空将使用渐变背景</p>
                                     </div>
-                                )}
 
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">访问密码（可选）</label>
-                                    <input
-                                        type="password"
-                                        value={newLinkPassword}
-                                        onChange={e => setNewLinkPassword(e.target.value)}
-                                        placeholder="留空则无需密码"
-                                        className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
-                                    />
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">最大访问次数（可选）</label>
+                                        <input
+                                            type="number"
+                                            value={newLinkMaxVisits}
+                                            onChange={e => setNewLinkMaxVisits(e.target.value)}
+                                            placeholder="留空则不限制"
+                                            min="1"
+                                            className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
+                                        />
+                                    </div>
+                                </form>
+                            </div>
+                            <div className="flex-shrink-0 p-6 pt-4 border-t">
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCreateModal(false)}
+                                        className="flex-1 px-6 py-3 rounded-xl border-2 hover:bg-slate-100 transition-colors font-semibold text-base"
+                                    >
+                                        取消
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        form="create-link-form"
+                                        disabled={creating}
+                                        className="flex-1 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 text-base"
+                                    >
+                                        {creating ? '创建中...' : '创建'}
+                                    </button>
                                 </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">过期时间（可选）</label>
-                                    <input
-                                        type="datetime-local"
-                                        value={newLinkExpiry}
-                                        onChange={e => setNewLinkExpiry(e.target.value)}
-                                        className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
-                                    />
-                                </div>
-                            </form>
-                        </div>
-                        <div className="flex-shrink-0 p-6 pt-4 border-t">
-                            <div className="flex gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowCreateModal(false)}
-                                    className="flex-1 px-6 py-3 rounded-xl border-2 hover:bg-slate-100 transition-colors font-semibold text-base"
-                                >
-                                    取消
-                                </button>
-                                <button
-                                    type="submit"
-                                    form="create-link-form"
-                                    disabled={creating}
-                                    className="flex-1 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 text-base"
-                                >
-                                    {creating ? '创建中...' : '创建'}
-                                </button>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Edit Link Modal */}
-            {showEditModal && editingLink && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full shadow-2xl max-h-[92vh] flex flex-col">
-                        <div className="flex-shrink-0 p-6 pb-4 border-b">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-2xl font-bold">编辑链接</h3>
-                                <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-slate-100 rounded-lg">
-                                    <X className="w-5 h-5" />
+            {
+                showEditModal && editingLink && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full shadow-2xl max-h-[92vh] flex flex-col">
+                            <div className="flex-shrink-0 p-6 pb-4 border-b">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-2xl font-bold">编辑链接</h3>
+                                    <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6">
+                                <form onSubmit={handleEditLink} className="space-y-4" id="edit-link-form">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">链接名称（内部管理用）</label>
+                                        <input
+                                            type="text"
+                                            value={newLinkName}
+                                            onChange={e => setNewLinkName(e.target.value)}
+                                            className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">描述（支持 Markdown）</label>
+                                        <textarea
+                                            value={newLinkDesc}
+                                            onChange={e => setNewLinkDesc(e.target.value)}
+                                            placeholder="支持 **粗体**、*斜体*、[链接](url)等格式..."
+                                            className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none h-24 resize-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">展示模式</label>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setNewLinkMode('MINIMAL')}
+                                                className={`p-3 rounded-xl border text-left transition-all ${newLinkMode === 'MINIMAL' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-slate-50'}`}
+                                            >
+                                                <div className="font-medium mb-1 text-sm">纯净</div>
+                                                <div className="text-xs text-muted-foreground">只有内容</div>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setNewLinkMode('DEFAULT')}
+                                                className={`p-3 rounded-xl border text-left transition-all ${newLinkMode === 'DEFAULT' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-slate-50'}`}
+                                            >
+                                                <div className="font-medium mb-1 text-sm">标准</div>
+                                                <div className="text-xs text-muted-foreground">带描述</div>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setNewLinkMode('CARD')}
+                                                className={`p-3 rounded-xl border text-left transition-all ${newLinkMode === 'CARD' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-slate-50'}`}
+                                            >
+                                                <div className="font-medium mb-1 text-sm">卡片</div>
+                                                <div className="text-xs text-muted-foreground">营销用</div>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {(newLinkMode === 'DEFAULT' || newLinkMode === 'CARD') && (
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                访问者标题 {newLinkMode === 'CARD' && <span className="text-red-500">*</span>}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newLinkDisplayTitle}
+                                                onChange={e => setNewLinkDisplayTitle(e.target.value)}
+                                                placeholder={newLinkMode === 'CARD' ? '吸引人的标题' : '访问者看到的标题（可选）'}
+                                                className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
+                                                required={newLinkMode === 'CARD'}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {newLinkMode === 'DEFAULT' && (
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-medium mb-2">显示选项</label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={newLinkShowFilename}
+                                                    onChange={e => setNewLinkShowFilename(e.target.checked)}
+                                                    className="w-4 h-4 rounded"
+                                                />
+                                                <span className="text-sm">显示文件名</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={newLinkShowFilesize}
+                                                    onChange={e => setNewLinkShowFilesize(e.target.checked)}
+                                                    className="w-4 h-4 rounded"
+                                                />
+                                                <span className="text-sm">显示文件大小</span>
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    {newLinkMode === 'CARD' && (
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">封面图链接（可选）</label>
+                                            <input
+                                                type="url"
+                                                value={newLinkCoverImage}
+                                                onChange={e => setNewLinkCoverImage(e.target.value)}
+                                                placeholder="https://example.com/cover.jpg"
+                                                className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
+                                            />
+                                            <p className="text-xs text-muted-foreground mt-1">留空将使用渐变背景</p>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">修改密码</label>
+                                        <div className="relative">
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                value={newLinkPassword}
+                                                onChange={e => setNewLinkPassword(e.target.value)}
+                                                placeholder={editingLink?.password ? "留空保持不变" : "设置新密码"}
+                                                className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none pr-10"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                            >
+                                                {showPassword ? <Eye className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            {editingLink?.password ? '当前有密码保护，留空保持原密码' : '留空表示无密码'}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">过期时间</label>
+                                        <input
+                                            type="datetime-local"
+                                            value={newLinkExpiry}
+                                            onChange={e => setNewLinkExpiry(e.target.value)}
+                                            className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">最大访问次数（可选）</label>
+                                        <input
+                                            type="number"
+                                            value={newLinkMaxVisits}
+                                            onChange={e => setNewLinkMaxVisits(e.target.value)}
+                                            placeholder="留空则不限制"
+                                            min="1"
+                                            className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
+                                        />
+                                    </div>
+                                </form>
+                            </div>
+                            <div className="flex-shrink-0 p-6 pt-4 border-t">
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowEditModal(false)}
+                                        className="flex-1 px-6 py-3 rounded-xl border-2 hover:bg-slate-100 transition-colors font-semibold text-base"
+                                    >
+                                        取消
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        form="edit-link-form"
+                                        disabled={saving}
+                                        className="flex-1 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 text-base"
+                                    >
+                                        {saving ? '保存中...' : '保存'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* QR Code Modal - Beautified */}
+            {
+                showQrModal && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4" onClick={() => setShowQrModal(false)}>
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-10 max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+                            <div className="text-center mb-8">
+                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-4">
+                                    <QrCode className="w-8 h-8 text-white" />
+                                </div>
+                                <h3 className="text-2xl font-bold mb-2">{currentLinkName}</h3>
+                                <p className="text-sm text-muted-foreground">扫码即可访问文件</p>
+                            </div>
+
+                            <div className="flex justify-center mb-8 p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20 rounded-3xl shadow-inner">
+                                <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl shadow-xl ring-1 ring-slate-900/5">
+                                    {qrCodeUrl ? (
+                                        <img src={qrCodeUrl} alt="QR Code" className="w-56 h-56" />
+                                    ) : (
+                                        <div className="w-56 h-56 flex items-center justify-center">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">链接地址</p>
+                                <p className="text-sm font-mono text-foreground break-all">{window.location.origin}/v/{currentSlug}</p>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-3">
+                                <button
+                                    onClick={() => copyToClipboard(currentSlug)}
+                                    className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-semibold flex items-center justify-center gap-2 text-sm"
+                                >
+                                    <Copy className="w-5 h-5" />
+                                    复制
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const link = document.createElement('a')
+                                        link.href = qrCodeUrl
+                                        link.download = `qrcode-${currentSlug}.png`
+                                        link.click()
+                                    }}
+                                    className="px-4 py-3 rounded-xl bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 transition-colors font-semibold flex items-center justify-center gap-2 text-sm"
+                                >
+                                    <Download className="w-5 h-5" />
+                                    下载
+                                </button>
+                                <button
+                                    onClick={() => setShowQrModal(false)}
+                                    className="px-4 py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors font-semibold text-sm"
+                                >
+                                    关闭
                                 </button>
                             </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-6">
-                            <form onSubmit={handleEditLink} className="space-y-4" id="edit-link-form">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">链接名称（内部管理用）</label>
-                                    <input
-                                        type="text"
-                                        value={newLinkName}
-                                        onChange={e => setNewLinkName(e.target.value)}
-                                        className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
-                                        required
-                                    />
+                    </div>
+                )
+            }
+
+            {/* Delete Confirmation Modal */}
+            {
+                showDeleteModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-md w-full shadow-2xl">
+                            <div className="text-center mb-6">
+                                <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+                                    <Trash2 className="w-8 h-8 text-red-600 dark:text-red-400" />
                                 </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">描述（支持 Markdown）</label>
-                                    <textarea
-                                        value={newLinkDesc}
-                                        onChange={e => setNewLinkDesc(e.target.value)}
-                                        placeholder="支持 **粗体**、*斜体*、[链接](url)等格式..."
-                                        className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none h-24 resize-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">展示模式</label>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setNewLinkMode('MINIMAL')}
-                                            className={`p-3 rounded-xl border text-left transition-all ${newLinkMode === 'MINIMAL' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-slate-50'}`}
-                                        >
-                                            <div className="font-medium mb-1 text-sm">纯净</div>
-                                            <div className="text-xs text-muted-foreground">只有内容</div>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setNewLinkMode('DEFAULT')}
-                                            className={`p-3 rounded-xl border text-left transition-all ${newLinkMode === 'DEFAULT' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-slate-50'}`}
-                                        >
-                                            <div className="font-medium mb-1 text-sm">标准</div>
-                                            <div className="text-xs text-muted-foreground">带描述</div>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setNewLinkMode('CARD')}
-                                            className={`p-3 rounded-xl border text-left transition-all ${newLinkMode === 'CARD' ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-slate-50'}`}
-                                        >
-                                            <div className="font-medium mb-1 text-sm">卡片</div>
-                                            <div className="text-xs text-muted-foreground">营销用</div>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {(newLinkMode === 'DEFAULT' || newLinkMode === 'CARD') && (
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">
-                                            访问者标题 {newLinkMode === 'CARD' && <span className="text-red-500">*</span>}
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={newLinkDisplayTitle}
-                                            onChange={e => setNewLinkDisplayTitle(e.target.value)}
-                                            placeholder={newLinkMode === 'CARD' ? '吸引人的标题' : '访问者看到的标题（可选）'}
-                                            className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
-                                            required={newLinkMode === 'CARD'}
-                                        />
-                                    </div>
-                                )}
-
-                                {newLinkMode === 'DEFAULT' && (
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium mb-2">显示选项</label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={newLinkShowFilename}
-                                                onChange={e => setNewLinkShowFilename(e.target.checked)}
-                                                className="w-4 h-4 rounded"
-                                            />
-                                            <span className="text-sm">显示文件名</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={newLinkShowFilesize}
-                                                onChange={e => setNewLinkShowFilesize(e.target.checked)}
-                                                className="w-4 h-4 rounded"
-                                            />
-                                            <span className="text-sm">显示文件大小</span>
-                                        </label>
-                                    </div>
-                                )}
-
-                                {newLinkMode === 'CARD' && (
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">封面图链接（可选）</label>
-                                        <input
-                                            type="url"
-                                            value={newLinkCoverImage}
-                                            onChange={e => setNewLinkCoverImage(e.target.value)}
-                                            placeholder="https://example.com/cover.jpg"
-                                            className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
-                                        />
-                                    </div>
-                                )}
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">修改密码</label>
-                                    <input
-                                        type="password"
-                                        value={newLinkPassword}
-                                        onChange={e => setNewLinkPassword(e.target.value)}
-                                        placeholder={editingLink.password ? "留空保持不变" : "设置新密码"}
-                                        className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
-                                    />
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        {editingLink.password ? '当前有密码保护，留空保持原密码' : '留空表示无密码'}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">过期时间</label>
-                                    <input
-                                        type="datetime-local"
-                                        value={newLinkExpiry}
-                                        onChange={e => setNewLinkExpiry(e.target.value)}
-                                        className="w-full px-4 py-2 rounded-xl border bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
-                                    />
-                                </div>
-                            </form>
-                        </div>
-                        <div className="flex-shrink-0 p-6 pt-4 border-t">
-                            <div className="flex gap-3">
+                                <h3 className="text-2xl font-bold mb-2">确认删除文件？</h3>
+                                <p className="text-muted-foreground">
+                                    删除后将无法恢复，所有相关的追踪链接也会被删除。
+                                </p>
+                            </div>
+                            <div className="flex gap-4">
                                 <button
-                                    type="button"
-                                    onClick={() => setShowEditModal(false)}
-                                    className="flex-1 px-6 py-3 rounded-xl border-2 hover:bg-slate-100 transition-colors font-semibold text-base"
+                                    onClick={() => setShowDeleteModal(false)}
+                                    disabled={deleting}
+                                    className="flex-1 px-6 py-3 rounded-xl border-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-semibold text-base"
                                 >
                                     取消
                                 </button>
                                 <button
-                                    type="submit"
-                                    form="edit-link-form"
-                                    disabled={saving}
-                                    className="flex-1 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 text-base"
+                                    onClick={confirmDeleteFile}
+                                    disabled={deleting}
+                                    className="flex-1 px-6 py-3 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors font-semibold text-base shadow-lg"
                                 >
-                                    {saving ? '保存中...' : '保存'}
+                                    {deleting ? '删除中...' : '确认删除'}
                                 </button>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* QR Code Modal - Beautified */}
-            {showQrModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4" onClick={() => setShowQrModal(false)}>
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-10 max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
-                        <div className="text-center mb-8">
-                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-4">
-                                <QrCode className="w-8 h-8 text-white" />
-                            </div>
-                            <h3 className="text-2xl font-bold mb-2">{currentLinkName}</h3>
-                            <p className="text-sm text-muted-foreground">扫码即可访问文件</p>
-                        </div>
-
-                        <div className="flex justify-center mb-8 p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20 rounded-3xl shadow-inner">
-                            <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl shadow-xl ring-1 ring-slate-900/5">
-                                {qrCodeUrl ? (
-                                    <img src={qrCodeUrl} alt="QR Code" className="w-56 h-56" />
-                                ) : (
-                                    <div className="w-56 h-56 flex items-center justify-center">
-                                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-                            <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">链接地址</p>
-                            <p className="text-sm font-mono text-foreground break-all">{window.location.origin}/v/{currentSlug}</p>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-3">
-                            <button
-                                onClick={() => copyToClipboard(currentSlug)}
-                                className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-semibold flex items-center justify-center gap-2 text-sm"
-                            >
-                                <Copy className="w-5 h-5" />
-                                复制
-                            </button>
-                            <button
-                                onClick={() => {
-                                    const link = document.createElement('a')
-                                    link.href = qrCodeUrl
-                                    link.download = `qrcode-${currentSlug}.png`
-                                    link.click()
-                                }}
-                                className="px-4 py-3 rounded-xl bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 transition-colors font-semibold flex items-center justify-center gap-2 text-sm"
-                            >
-                                <Download className="w-5 h-5" />
-                                下载
-                            </button>
-                            <button
-                                onClick={() => setShowQrModal(false)}
-                                className="px-4 py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors font-semibold text-sm"
-                            >
-                                关闭
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Delete Confirmation Modal */}
-            {showDeleteModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-md w-full shadow-2xl">
-                        <div className="text-center mb-6">
-                            <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
-                                <Trash2 className="w-8 h-8 text-red-600 dark:text-red-400" />
-                            </div>
-                            <h3 className="text-2xl font-bold mb-2">确认删除文件？</h3>
-                            <p className="text-muted-foreground">
-                                删除后将无法恢复，所有相关的追踪链接也会被删除。
-                            </p>
-                        </div>
-                        <div className="flex gap-4">
-                            <button
-                                onClick={() => setShowDeleteModal(false)}
-                                disabled={deleting}
-                                className="flex-1 px-6 py-3 rounded-xl border-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-semibold text-base"
-                            >
-                                取消
-                            </button>
-                            <button
-                                onClick={confirmDeleteFile}
-                                disabled={deleting}
-                                className="flex-1 px-6 py-3 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors font-semibold text-base shadow-lg"
-                            >
-                                {deleting ? '删除中...' : '确认删除'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     )
 }

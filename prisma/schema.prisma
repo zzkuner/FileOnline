@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -59,6 +59,7 @@ model Link {
   isActive      Boolean  @default(true)
   password      String?  // 访问密码（可选）
   expiresAt     DateTime? // 过期时间（可选）
+  maxVisits     Int?     // 最大访问次数（可选）
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   

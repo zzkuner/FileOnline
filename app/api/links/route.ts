@@ -16,7 +16,7 @@ function generateSlug(length: number): string {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
-        const { fileId, name, description, password, expiresAt, viewMode } = body
+        const { fileId, name, description, password, expiresAt, maxVisits, viewMode } = body
 
         if (!fileId || !name) {
             return NextResponse.json(
@@ -51,7 +51,8 @@ export async function POST(request: NextRequest) {
                 showFilesize: body.showFilesize !== undefined ? body.showFilesize : false,
                 coverImage: body.coverImage || null,
                 password: hashedPassword,
-                expiresAt: expiresAt ? new Date(expiresAt) : null
+                expiresAt: expiresAt ? new Date(expiresAt) : null,
+                maxVisits: maxVisits ? parseInt(maxVisits) : null
             },
             include: {
                 file: {

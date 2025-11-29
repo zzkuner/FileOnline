@@ -1,9 +1,96 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { Upload, Link2, Shield, Zap, Eye, BarChart3, Bell, Lock, Globe, Clock } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
+import { toast } from 'sonner'
+import { Upload, Link2, Shield, Zap, Eye, BarChart3, Bell, Lock, Globe, Clock, ArrowRight, FolderOpen, LogOut } from 'lucide-react'
+import { UploadModal } from '@/components/UploadModal'
 
 export default function LandingPage() {
+  const router = useRouter()
+  const { data: session, status } = useSession()
+  const isLoggedIn = status === 'authenticated'
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useState<HTMLInputElement | null>(null)[0]
+
+  const handleUploadSuccess = () => {
+    // 上传成功后跳转到Dashboard
+    router.push('/dashboard')
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && session?.user?.id) {
+      await uploadFile(file)
+    }
+  }
+
+  const uploadFile = async (file: File) => {
+    if (!session?.user?.id) return
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('userId', session.user.id)
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Upload failed')
+      }
+
+      toast.success('文件上传成功！', {
+        description: `${file.name} 已就绪`
+      })
+
+      // 上传成功后可以选择跳转到Dashboard或刷新
+      setTimeout(() => router.push('/dashboard'), 1000)
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast.error('上传失败', {
+        description: error instanceof Error ? error.message : '请重试'
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (isLoggedIn) {
+      setIsDragging(true)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    if (!isLoggedIn || !session?.user?.id) return
+
+    const droppedFiles = e.dataTransfer.files
+    if (droppedFiles.length > 0) {
+      await uploadFile(droppedFiles[0])
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
       {/* Header */}
@@ -17,16 +104,41 @@ export default function LandingPage() {
               InsightLink
             </span>
           </div>
-          <nav className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">功能</a>
-            <a href="#use-cases" className="text-sm font-medium hover:text-primary transition-colors">应用场景</a>
-            <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors">登录</Link>
-            <Link
-              href="/register"
-              className="px-6 py-2 rounded-full gradient-primary text-white font-medium hover:opacity-90 transition-opacity"
-            >
-              开始使用
-            </Link>
+          <nav className="hidden md:flex items-center gap-4">
+            {!isLoggedIn ? (
+              <>
+                <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">功能</a>
+                <a href="#use-cases" className="text-sm font-medium hover:text-primary transition-colors">应用场景</a>
+                <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors">登录</Link>
+                <Link
+                  href="/register"
+                  className="px-6 py-2 rounded-full gradient-primary text-white font-medium hover:opacity-90 transition-opacity"
+                >
+                  开始使用
+                </Link>
+              </>
+            ) : (
+              <>
+                <div className="text-sm">
+                  <div className="font-medium">{session?.user?.name || '用户'}</div>
+                  <div className="text-xs text-muted-foreground">{session?.user?.email}</div>
+                </div>
+                <Link
+                  href="/dashboard"
+                  className="px-6 py-2 rounded-full gradient-primary text-white font-medium hover:opacity-90 transition-opacity flex items-center gap-2"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  进入Dashboard
+                </Link>
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
+                  title="退出登录"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -56,37 +168,99 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Upload Area */}
+          {/* Upload Area / Dashboard Quickstart */}
           <div className="max-w-3xl mx-auto">
-            <Link href="/register" className="block group">
-              <div className="relative overflow-hidden rounded-3xl border-2 border-dashed border-indigo-200 dark:border-indigo-800 bg-white/50 dark:bg-slate-900/50 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all duration-300 p-12 text-center cursor-pointer group-hover:border-indigo-500 group-hover:shadow-2xl group-hover:scale-[1.02]">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            {!isLoggedIn ? (
+              <Link href="/register" className="block group">
+                <div className="relative overflow-hidden rounded-3xl border-2 border-dashed border-indigo-200 dark:border-indigo-800 bg-white/50 dark:bg-slate-900/50 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all duration-300 p-12 text-center cursor-pointer group-hover:border-indigo-500 group-hover:shadow-2xl group-hover:scale-[1.02]">
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                <div className="relative z-10 flex flex-col items-center gap-6">
-                  <div className="w-24 h-24 rounded-full gradient-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <Upload className="w-10 h-10 text-white animate-bounce" />
+                  <div className="relative z-10 flex flex-col items-center gap-6">
+                    <div className="w-24 h-24 rounded-full gradient-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                      <Upload className="w-10 h-10 text-white animate-bounce" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+                        点击或拖拽文件上传
+                      </h3>
+                      <p className="text-slate-500 dark:text-slate-400">
+                        支持 PDF, PPT, MP4, JPG, PNG (最大 100MB)
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-sm text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <Shield className="w-4 h-4" /> 安全加密
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Zap className="w-4 h-4" /> 极速转码
+                      </span>
+                    </div>
                   </div>
+                </div>
+              </Link>
+            ) : (
+              <div className="glass rounded-3xl p-8 border-2 border-indigo-200 dark:border-indigo-800">
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold mb-2">👋 欢迎回来，{session?.user?.name}！</h3>
+                  <p className="text-muted-foreground">开始上传文件或查看您的数据</p>
+                </div>
 
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-                      点击或拖拽文件上传
-                    </h3>
-                    <p className="text-slate-500 dark:text-slate-400">
-                      支持 PDF, PPT, MP4, JPG, PNG (最大 100MB)
-                    </p>
-                  </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className="group flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white transition-all duration-300 hover:shadow-xl hover:scale-105"
+                  >
+                    <FolderOpen className="w-12 h-12 group-hover:scale-110 transition-transform" />
+                    <div className="text-center">
+                      <div className="font-bold text-lg">进入 Dashboard</div>
+                      <div className="text-sm opacity-90">管理文件和链接</div>
+                    </div>
+                    <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
 
-                  <div className="flex items-center gap-4 text-sm text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <Shield className="w-4 h-4" /> 安全加密
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Zap className="w-4 h-4" /> 极速转码
-                    </span>
+                  <div
+                    className={`relative group flex flex-col items-center gap-3 p-6 rounded-2xl transition-all duration-300 cursor-pointer ${isDragging
+                      ? 'bg-indigo-100 dark:bg-indigo-900/30 border-2 border-indigo-500 scale-105 shadow-xl'
+                      : uploading
+                        ? 'bg-slate-100 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700'
+                        : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-200 dark:border-slate-700 hover:shadow-xl hover:scale-105'
+                      }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => {
+                      if (!uploading) {
+                        document.getElementById('landing-file-input')?.click()
+                      }
+                    }}
+                  >
+                    <Upload className={`w-12 h-12 text-indigo-600 dark:text-indigo-400 transition-transform ${isDragging ? 'scale-125 animate-bounce' : uploading ? 'animate-pulse' : 'group-hover:scale-110'
+                      }`} />
+                    <div className="text-center">
+                      <div className="font-bold text-lg">
+                        {uploading ? '上传中...' : isDragging ? '松开上传' : '上传文件'}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {uploading ? '请稍候' : '点击或拖拽文件'}
+                      </div>
+                    </div>
+                    {!uploading && !isDragging && (
+                      <ArrowRight className="w-5 h-5 text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                    <input
+                      id="landing-file-input"
+                      type="file"
+                      onChange={handleFileChange}
+                      disabled={uploading}
+                      className="hidden"
+                      accept=".pdf,.mp4,.mov,.jpg,.jpeg,.png,.ppt,.pptx,.md,.txt"
+                    />
                   </div>
                 </div>
               </div>
-            </Link>
+            )}
           </div>
 
           {/* Stats */}
@@ -271,6 +445,16 @@ export default function LandingPage() {
           <p>© 2025 InsightLink. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Upload Modal */}
+      {isLoggedIn && session?.user?.id && (
+        <UploadModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          onUploadSuccess={handleUploadSuccess}
+          userId={session.user.id}
+        />
+      )}
     </div>
   )
 }

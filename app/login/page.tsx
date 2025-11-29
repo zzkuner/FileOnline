@@ -1,17 +1,39 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Mail, Lock, ArrowRight } from 'lucide-react'
 
 export default function LoginPage() {
     const router = useRouter()
+    const { data: session, status } = useSession()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+
+    // 如果已登录，自动跳转到Dashboard
+    useEffect(() => {
+        if (status === 'authenticated') {
+            router.push('/dashboard')
+        }
+    }, [status, router])
+
+    // 如果正在检查登录状态，显示加载中
+    if (status === 'loading') {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 flex items-center justify-center">
+                <div className="text-lg">检查登录状态...</div>
+            </div>
+        )
+    }
+
+    // 如果已登录，不显示登录表单（虽然会立即跳转）
+    if (status === 'authenticated') {
+        return null
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()

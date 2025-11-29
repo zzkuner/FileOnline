@@ -5,7 +5,9 @@ import { toast } from 'sonner'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Upload, FileText, Video, Image as ImageIcon, Link2, Plus, LogOut } from 'lucide-react'
+import { Upload, FileText, Video, Image as ImageIcon, Link2, Plus, LogOut, Shield, Zap } from 'lucide-react'
+import { EmptyState } from '@/components/EmptyState'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface FileItem {
     id: string
@@ -25,6 +27,7 @@ export default function DashboardPage() {
     const [files, setFiles] = useState<FileItem[]>([])
     const [uploading, setUploading] = useState(false)
     const [loading, setLoading] = useState(true)
+    const [isDragging, setIsDragging] = useState(false)
 
     useEffect(() => {
         if (status === 'unauthenticated') {
@@ -71,6 +74,55 @@ export default function DashboardPage() {
                 throw new Error('Upload failed')
             }
 
+            toast.success('文件上传成功！')
+            await loadFiles(session.user.id)
+        } catch (error) {
+            console.error('Upload error:', error)
+            toast.error('上传失败，请重试')
+        } finally {
+            setUploading(false)
+        }
+    }
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragging(true)
+    }
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragging(false)
+    }
+
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragging(false)
+
+        if (!session?.user?.id) return
+
+        const droppedFiles = e.dataTransfer.files
+        if (droppedFiles.length === 0) return
+
+        setUploading(true)
+        try {
+            const file = droppedFiles[0]
+            const formData = new FormData()
+            formData.append('file', file)
+            formData.append('userId', session.user.id)
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+
+            if (!res.ok) {
+                throw new Error('Upload failed')
+            }
+
+            toast.success('文件上传成功！')
             await loadFiles(session.user.id)
         } catch (error) {
             console.error('Upload error:', error)
@@ -149,15 +201,28 @@ export default function DashboardPage() {
             </header>
 
             <main className="container mx-auto px-6 py-12">
-                <div className="mb-12">
-                    <div className="glass rounded-3xl p-12 text-center border-2 border-dashed border-primary/30 hover:border-primary/60 transition-all">
-                        <div className="w-20 h-20 rounded-full gradient-primary flex items-center justify-center mx-auto mb-6">
-                            <Upload className="w-10 h-10 text-white" />
+                <div className="mb-8">
+                    <div
+                        className={`glass rounded-2xl p-8 text-center border-2 border-dashed transition-all duration-200 ${isDragging
+                                ? 'border-indigo-500 bg-indigo-50/80 shadow-lg'
+                                : 'border-indigo-200 hover:border-indigo-400 hover:bg-white/60 hover:shadow-md'
+                            }`}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                    >
+                        <div className={`w-16 h-16 rounded-full gradient-primary flex items-center justify-center mx-auto mb-4 transition-transform duration-300 shadow-md ${isDragging ? 'rotate-12' : 'group-hover:scale-105'
+                            }`}>
+                            <Upload className={`w-8 h-8 text-white ${isDragging ? 'animate-bounce' : ''}`} />
                         </div>
-                        <h2 className="text-3xl font-bold mb-3">上传文件</h2>
-                        <p className="text-muted-foreground mb-6">支持 PDF、视频、图片等多种格式</p>
+                        <h2 className="text-xl font-bold mb-2 text-slate-800">
+                            {uploading ? '上传中...' : isDragging ? '松开上传文件' : '上传文件'}
+                        </h2>
+                        <p className="text-slate-500 mb-6 text-sm">
+                            {isDragging ? '释放鼠标以上传' : '支持 PDF、视频、图片等多种格式'}
+                        </p>
 
-                        <label className="inline-block">
+                        <label className="inline-block group">
                             <input
                                 type="file"
                                 onChange={handleFileUpload}
@@ -165,11 +230,22 @@ export default function DashboardPage() {
                                 className="hidden"
                                 accept=".pdf,.mp4,.mov,.jpg,.jpeg,.png,.ppt,.pptx"
                             />
-                            <span className="px-8 py-4 rounded-full gradient-primary text-white font-semibold hover:opacity-90 transition-all cursor-pointer inline-flex items-center gap-2">
+                            <span className="px-8 py-3 rounded-full gradient-primary text-white font-semibold text-sm hover:opacity-90 transition-all cursor-pointer inline-flex items-center gap-2 shadow-md group-hover:shadow-indigo-500/30 group-hover:-translate-y-0.5">
                                 {uploading ? '上传中...' : '选择文件'}
-                                {!uploading && <Plus className="w-5 h-5" />}
+                                {!uploading && <Plus className="w-4 h-4" />}
                             </span>
                         </label>
+
+                        {!uploading && !isDragging && (
+                            <div className="flex justify-center items-center gap-6 mt-6 text-xs text-slate-400">
+                                <span className="flex items-center gap-1">
+                                    <Shield className="w-3 h-3" /> 安全加密
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    <Zap className="w-3 h-3" /> 极速转码
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -177,47 +253,62 @@ export default function DashboardPage() {
                     <h3 className="text-2xl font-bold mb-6">我的文件</h3>
 
                     {files.length === 0 ? (
-                        <div className="glass rounded-2xl p-12 text-center">
-                            <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                            <p className="text-muted-foreground">还没有上传任何文件</p>
-                        </div>
+                        <EmptyState
+                            icon={FileText}
+                            title="还没有上传任何文件"
+                            description="上传的文件将在这里显示，您可以创建追踪链接并查看访问数据。"
+                            action={{
+                                label: "立即上传",
+                                onClick: () => document.getElementById('dashboard-file-input')?.click()
+                            }}
+                        />
                     ) : (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {files.map((file) => (
-                                <div
-                                    key={file.id}
-                                    className="glass rounded-2xl p-6 hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer group"
-                                    onClick={() => router.push(`/dashboard/file/${file.id}`)}
-                                >
-                                    <div className="flex items-start gap-4 mb-4">
-                                        <div className="flex-shrink-0">
-                                            {getFileIcon(file.fileType)}
+                        <motion.div
+                            layout
+                            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+                        >
+                            <AnimatePresence mode="popLayout">
+                                {files.map((file) => (
+                                    <motion.div
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                        transition={{ duration: 0.2 }}
+                                        key={file.id}
+                                        className="glass rounded-2xl p-6 hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer group"
+                                        onClick={() => router.push(`/dashboard/file/${file.id}`)}
+                                    >
+                                        <div className="flex items-start gap-4 mb-4">
+                                            <div className="flex-shrink-0">
+                                                {getFileIcon(file.fileType)}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-semibold truncate group-hover:text-primary transition-colors">
+                                                    {file.originalName}
+                                                </h4>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {formatFileSize(file.fileSize)}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-semibold truncate group-hover:text-primary transition-colors">
-                                                {file.originalName}
-                                            </h4>
-                                            <p className="text-sm text-muted-foreground">
-                                                {formatFileSize(file.fileSize)}
-                                            </p>
-                                        </div>
-                                    </div>
 
-                                    <div className="flex items-center justify-between pt-4 border-t">
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <Link2 className="w-4 h-4" />
-                                            <span>{file._count?.links || 0} 个链接</span>
+                                        <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <Link2 className="w-4 h-4" />
+                                                <span>{file._count?.links || 0} 个链接</span>
+                                            </div>
+                                            <div className={`text-xs px-3 py-1 rounded-full ${file.status === 'READY'
+                                                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                                                : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
+                                                }`}>
+                                                {file.status === 'READY' ? '就绪' : '处理中'}
+                                            </div>
                                         </div>
-                                        <div className={`text-xs px-3 py-1 rounded-full ${file.status === 'READY'
-                                            ? 'bg-green-500/10 text-green-600'
-                                            : 'bg-yellow-500/10 text-yellow-600'
-                                            }`}>
-                                            {file.status === 'READY' ? '就绪' : '处理中'}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </motion.div>
                     )}
                 </div>
             </main>

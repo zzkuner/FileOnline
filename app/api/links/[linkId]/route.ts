@@ -9,7 +9,7 @@ export async function PATCH(
     try {
         const { linkId } = await params
         const body = await request.json()
-        const { name, description, displayTitle, displayMode, showFilename, showFilesize, coverImage, password, expiresAt, isActive } = body
+        const { name, description, displayTitle, displayMode, showFilename, showFilesize, coverImage, password, expiresAt, maxVisits, isActive } = body
 
         const updateData: any = {}
 
@@ -26,6 +26,9 @@ export async function PATCH(
         }
         if (expiresAt !== undefined) {
             updateData.expiresAt = expiresAt ? new Date(expiresAt) : null
+        }
+        if (maxVisits !== undefined) {
+            updateData.maxVisits = maxVisits ? parseInt(maxVisits) : null
         }
         if (isActive !== undefined) updateData.isActive = isActive
 

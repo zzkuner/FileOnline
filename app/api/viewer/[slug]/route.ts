@@ -18,7 +18,10 @@ export async function GET(
         const link = await prisma.link.findUnique({
             where: { slug },
             include: {
-                file: true
+                file: true,
+                _count: {
+                    select: { visits: true }
+                }
             }
         })
 
@@ -39,6 +42,13 @@ export async function GET(
         if (link.expiresAt && new Date() > link.expiresAt) {
             return NextResponse.json(
                 { error: '链接已过期' },
+                { status: 410 }
+            )
+        }
+
+        if (link.maxVisits && link._count.visits >= link.maxVisits) {
+            return NextResponse.json(
+                { error: '链接访问次数已达上限' },
                 { status: 410 }
             )
         }
@@ -105,8 +115,8 @@ export async function GET(
 
         // 如果是视频文件且有HLS版本，也获取HLS URL
         let hlsUrl = null
-        if (link.file.fileType === 'VIDEO' && link.file.hlsPath) {
-            hlsUrl = await getFileUrl(link.file.hlsPath)
+        if (link.file.fileType === 'VIDEO' && link.file.processedPath) {
+            hlsUrl = await getFileUrl(link.file.processedPath)
         }
 
         return NextResponse.json({
@@ -114,7 +124,7 @@ export async function GET(
             file: {
                 name: link.file.originalName,
                 type: link.file.fileType,
-                size: link.file.size,
+                size: link.file.fileSize,
                 url,
                 hlsUrl
             },
