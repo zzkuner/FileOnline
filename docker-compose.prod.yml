@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: insightlink-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://admin:password123@postgres:5432/fileonline?schema=public
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-admin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-password123}
+      - MINIO_BUCKET_NAME=files
+      - NEXT_PUBLIC_APP_URL=http://your-server-ip:3000
+    volumes:
+      - ./public/uploads:/app/public/uploads
+    depends_on:
+      - minio
+      - postgres
+
+  minio:
+    image: minio/minio
+    container_name: insightlink-minio
+    restart: always
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-password123}
+    volumes:
+      - minio_data:/data
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: insightlink-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: fileonline
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  minio_data:
+  postgres_data:

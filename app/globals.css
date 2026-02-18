@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  --radius: 0.75rem;
+
+  /* Theme colors - light */
+  --color-primary: #6366f1;
+  --color-primary-foreground: #ffffff;
+  --color-background: #ffffff;
+  --color-foreground: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+  --color-accent: #f1f5f9;
+  --color-accent-foreground: #0f172a;
+  --color-border: #e2e8f0;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+}
+
+.dark {
+  --color-primary: #818cf8;
+  --color-primary-foreground: #ffffff;
+  --color-background: #020617;
+  --color-foreground: #f8fafc;
+  --color-muted: #1e293b;
+  --color-muted-foreground: #94a3b8;
+  --color-accent: #1e293b;
+  --color-accent-foreground: #f8fafc;
+  --color-border: #334155;
+  --color-card: #0f172a;
+  --color-card-foreground: #f8fafc;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
+/* Custom Gradients */
+.gradient-primary {
+  background: linear-gradient(135deg, #6366f1, #06b6d4);
+}
+
+.gradient-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(249, 250, 251, 0.9));
+}
+
+.dark .gradient-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.9));
+}
+
+/* Glass Effect */
+/* Glass Effect - High Opacity as requested */
+.glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .glass {
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Animations */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.2),
+      0 0 40px rgba(99, 102, 241, 0.1);
+  }
+
+  to {
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.4),
+      0 0 60px rgba(99, 102, 241, 0.2);
+  }
+}

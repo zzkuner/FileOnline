@@ -1,0 +1,267 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户模型
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  role          String   @default("USER") // USER or ADMIN
+
+  // 等级系统
+  tier          String   @default("FREE") // FREE, PRO, MAX
+  tierExpiresAt DateTime? // 会员到期时间（null=永久或免费）
+  storageUsed   Int      @default(0) // 已用存储空间（字节）
+  isBlocked     Boolean  @default(false) // 管理员封禁
+  blockReason   String?  // 封禁原因
+
+  // Profile fields
+  avatar        String?
+  bio           String?
+  title         String?
+  company       String?
+  website       String?
+  socialLinks   String?  // JSON string for social media links
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  files                File[]
+  cardKeysUsed         CardKey[]
+  paymentRecords       PaymentRecord[]
+  notificationSetting  NotificationSetting?
+}
+
+// 文件模型
+model File {
+  id            String   @id @default(cuid())
+  userId        String
+  originalName  String
+  storagePath   String
+  processedPath String?
+  fileType      String   // PDF, VIDEO, IMAGE, PPT
+  mimeType      String
+  fileSize      Int
+  status        String   @default("PROCESSING")
+  metadata      String?
+  isBanned      Boolean  @default(false)  // 管理员封禁
+  banReason     String?  // 封禁原因
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  links         Link[]
+
+  @@index([userId])
+}
+
+// 追踪链接模型
+model Link {
+  id            String   @id @default(cuid())
+  fileId        String
+  slug          String   @unique
+  name          String
+  description   String?
+  displayTitle  String?
+  displayMode   String   @default("DEFAULT")
+  showFilename  Boolean  @default(false)
+  showFilesize  Boolean  @default(false)
+  coverImage    String?
+  isActive      Boolean  @default(true)
+  hideBranding  Boolean  @default(false)
+  password      String?
+  expiresAt     DateTime?
+  maxVisits     Int?
+  isBanned      Boolean  @default(false)  // 管理员封禁
+  banReason     String?  // 封禁原因
+
+  // Customization
+  themeId       String?
+  theme         Theme?   @relation(fields: [themeId], references: [id])
+  customFields  String?
+  uploaderProfile String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  file          File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  visits        Visit[]
+
+  @@index([fileId])
+  @@index([slug])
+  @@index([themeId])
+}
+
+// 主题模型
+model Theme {
+  id            String   @id @default(cuid())
+  name          String
+  colors        String
+  font          String   @default("Inter")
+  userId        String?
+  isSystem      Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  links         Link[]
+
+  @@index([userId])
+}
+
+// 访问记录模型
+model Visit {
+  id            String   @id @default(cuid())
+  linkId        String
+  visitorIp     String?
+  userAgent     String?
+  deviceType    String?
+  browser       String?
+  os            String?
+  location      String?
+  referrer      String?
+  startedAt     DateTime @default(now())
+  endedAt       DateTime?
+  duration      Int?
+
+  link          Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  events        Event[]
+
+  @@index([linkId])
+  @@index([startedAt])
+}
+
+// 事件记录模型
+model Event {
+  id            String   @id @default(cuid())
+  visitId       String
+  eventType     String
+  payload       String
+  timestamp     DateTime @default(now())
+
+  visit         Visit    @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@index([visitId])
+  @@index([timestamp])
+}
+
+// 系统配置（key-value 存储）
+model SystemConfig {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  value         String
+  description   String?
+  updatedAt     DateTime @updatedAt
+
+  @@index([key])
+}
+
+// 卡密系统
+model CardKey {
+  id            String   @id @default(cuid())
+  code          String   @unique // 卡密码
+  tier          String   // 激活后的等级 PRO / MAX
+  durationDays  Int      // 有效天数
+  isUsed        Boolean  @default(false)
+  usedById      String?  // 使用者
+  usedAt        DateTime?
+  usedBy        User?    @relation(fields: [usedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  batchId       String?  // 批次标识
+
+  @@index([code])
+  @@index([batchId])
+}
+
+// 系统日志
+model SystemLog {
+  id            String   @id @default(cuid())
+  level         String   @default("INFO") // INFO, WARN, ERROR
+  action        String   // USER_LOGIN, FILE_UPLOAD, CARD_ACTIVATE, etc.
+  detail        String?  // 详细描述
+  userId        String?
+  ip            String?
+  createdAt     DateTime @default(now())
+
+  @@index([level])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// 支付记录
+model PaymentRecord {
+  id            String   @id @default(cuid())
+  userId        String
+  type          String   // CARD_KEY, WECHAT, ALIPAY, STRIPE
+  amount        Float    @default(0) // 金额（元）
+  tier          String   // 升级后的等级
+  durationDays  Int      // 有效天数
+  status        String   @default("SUCCESS") // PENDING, SUCCESS, FAILED, REFUNDED
+  orderId       String?  // 外部订单号
+  detail        String?  // JSON: 额外信息
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// 通知设置
+model NotificationSetting {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  notifyEmail       String?  // 接收通知的邮箱地址（空则使用注册邮箱）
+  emailOnView       Boolean  @default(false) // 有人查看文件时邮件通知
+  emailOnExpire     Boolean  @default(true)  // 链接过期提醒
+  emailDigest       Boolean  @default(false) // 每周摘要邮件
+  emailOnRegister   Boolean  @default(true)  // 注册成功通知
+  emailOnTierChange Boolean  @default(true)  // 会员等级变更通知
+  emailOnTierExpire Boolean  @default(true)  // 会员即将到期通知
+  emailOnFileBanned Boolean  @default(true)  // 文件被封禁通知
+  updatedAt         DateTime @updatedAt
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 会员定价方案
+model MembershipPlan {
+  id            String   @id @default(cuid())
+  tier          String   // PRO, MAX
+  name          String   // 月卡, 季卡, 年卡, 永久
+  durationDays  Int      // 30, 90, 365, -1(永久)
+  price         Float    // 价格（元）
+  originalPrice Float?   // 原价（划线价）
+  description   String?  // 方案描述
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0) // 排序
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tier])
+  @@index([isActive])
+}
+
+// 验证码
+model VerificationCode {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  type      String   // REGISTER, RESET_PASSWORD
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([code])
+}
