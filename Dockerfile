@@ -48,8 +48,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Copy prisma schema
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
-# Copy prisma CLI for startup db sync
+# Copy prisma CLI and native engines for startup db sync
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
 # Copy startup entrypoint script
 COPY --from=builder /app/scripts/docker-entrypoint.sh ./docker-entrypoint.sh
