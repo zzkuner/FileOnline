@@ -28,7 +28,7 @@ yarn-error.log*
 # Database
 *.db
 *.db-journal
-prisma/migrations/
+# Note: prisma/migrations/ is intentionally tracked for production deploys
 
 # Uploads (if using local storage)
 uploads/

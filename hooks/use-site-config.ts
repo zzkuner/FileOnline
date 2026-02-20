@@ -21,7 +21,7 @@ interface SiteConfig {
 }
 
 const defaultConfig: SiteConfig = {
-    siteName: 'InsightLink',
+    siteName: '阅迹 ViewTrace',
     siteUrl: '',
     siteSlogan: '让本地文件拥有"在线生命"',
     siteDescription: '简单拖拽，本地文件秒变在线直链。实时追踪访客行为，让每一次分享都心中有数。',

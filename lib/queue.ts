@@ -8,7 +8,7 @@ import os from 'os';
 export async function processVideo(fileId: string, fileKey: string) {
     console.log(`Starting video processing for file ${fileId}`);
 
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'insightlink-'));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'viewtrace-'));
     const inputPath = path.join(tempDir, 'input.mp4');
     const outputDir = path.join(tempDir, 'hls');
 

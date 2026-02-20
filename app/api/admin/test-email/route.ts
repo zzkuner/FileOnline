@@ -49,9 +49,9 @@ export async function POST(request: NextRequest) {
         // 发送测试邮件
         const adminEmail = targetEmail || session.user.email || cfg.SMTP_USER
         await transporter.sendMail({
-            from: `"${cfg.SMTP_FROM_NAME || 'InsightLink'}" <${cfg.SMTP_FROM || cfg.SMTP_USER}>`,
+            from: `"${cfg.SMTP_FROM_NAME || '阅迹 ViewTrace'}" <${cfg.SMTP_FROM || cfg.SMTP_USER}>`,
             to: adminEmail,
-            subject: '📧 InsightLink 邮件测试',
+            subject: '📧 阅迹 ViewTrace 邮件测试',
             html: `
                 <div style="font-family: 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f8fafc; border-radius: 16px;">
                     <h2 style="color: #6366f1; margin-bottom: 16px;">✅ 邮件服务配置成功！</h2>

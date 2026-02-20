@@ -67,7 +67,7 @@ export const authOptions: NextAuthOptions = {
     session: {
         strategy: "jwt"
     },
-    secret: process.env.NEXTAUTH_SECRET || "insightlink-secret-key-change-in-production"
+    secret: process.env.NEXTAUTH_SECRET || "viewtrace-secret-key-change-in-production"
 }
 
 const handler = NextAuth(authOptions)

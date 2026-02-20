@@ -73,7 +73,7 @@ export async function POST() {
         }
 
         // 测试写入和删除
-        const testKey = `.insightlink-test-${Date.now()}`
+        const testKey = `.viewtrace-test-${Date.now()}`
         await s3.send(new PutObjectCommand({
             Bucket: cfg.S3_BUCKET,
             Key: testKey,

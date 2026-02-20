@@ -96,7 +96,7 @@ export default function CardModeView({
                         {/* 底部提示 */}
                         <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
                             <p className="text-xs text-center text-muted-foreground">
-                                由 <span className="font-semibold text-blue-600">InsightLink</span> 提供安全分享服务
+                                由 <span className="font-semibold text-blue-600">阅迹 ViewTrace</span> 提供安全分享服务
                             </p>
                         </div>
                     </div>

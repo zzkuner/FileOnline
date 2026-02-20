@@ -14,7 +14,7 @@ export async function GET() {
         ])
 
         return NextResponse.json({
-            siteName: cfg.SITE_NAME || 'InsightLink',
+            siteName: cfg.SITE_NAME || '阅迹 ViewTrace',
             siteUrl: cfg.SITE_URL || '',
             siteSlogan: cfg.SITE_SLOGAN || '让本地文件拥有"在线生命"',
             siteDescription: cfg.SITE_DESCRIPTION || '简单拖拽，本地文件秒变在线直链。实时追踪访客行为，让每一次分享都心中有数。',
@@ -31,7 +31,7 @@ export async function GET() {
         })
     } catch (error) {
         return NextResponse.json({
-            siteName: 'InsightLink',
+            siteName: '阅迹 ViewTrace',
             siteUrl: '',
             siteSlogan: '让本地文件拥有"在线生命"',
             siteDescription: '简单拖拽，本地文件秒变在线直链。实时追踪访客行为，让每一次分享都心中有数。',

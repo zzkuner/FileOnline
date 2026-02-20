@@ -5,50 +5,56 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: insightlink-app
+    container_name: viewtrace-app
     restart: always
     ports:
       - "3000:3000"
-    environment:
-      - DATABASE_URL=postgresql://admin:password123@postgres:5432/fileonline?schema=public
-      - MINIO_ENDPOINT=minio
-      - MINIO_PORT=9000
-      - MINIO_USE_SSL=false
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-admin}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-password123}
-      - MINIO_BUCKET_NAME=files
-      - NEXT_PUBLIC_APP_URL=http://your-server-ip:3000
+    env_file:
+      - .env
     volumes:
-      - ./public/uploads:/app/public/uploads
+      - uploads_data:/app/public/uploads
     depends_on:
-      - minio
-      - postgres
-
-  minio:
-    image: minio/minio
-    container_name: insightlink-minio
-    restart: always
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-admin}
-      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-password123}
-    volumes:
-      - minio_data:/data
+      postgres:
+        condition: service_healthy
 
   postgres:
     image: postgres:15-alpine
-    container_name: insightlink-postgres
+    container_name: viewtrace-postgres
     restart: always
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password123
-      POSTGRES_DB: fileonline
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_please}
+      POSTGRES_DB: ${POSTGRES_DB:-viewtrace}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # --- 可选：本地 MinIO 对象存储 ---
+  # 如果您不使用 S3/R2，可以取消以下注释并在 .env 中设置 STORAGE_TYPE=minio
+  # minio:
+  #   image: minio/minio
+  #   container_name: viewtrace-minio
+  #   restart: always
+  #   command: server /data --console-address ":9001"
+  #   ports:
+  #     - "9000:9000"   # S3 API
+  #     - "9001:9001"   # Web 控制台
+  #   environment:
+  #     MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+  #     MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+  #   volumes:
+  #     - minio_data:/data
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
 volumes:
-  minio_data:
   postgres_data:
+  uploads_data:
+  # minio_data:

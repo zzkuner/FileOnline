@@ -159,7 +159,7 @@ export default function AdminSettingsPage() {
                             <Field label="用户名" configKey="SMTP_USER" placeholder="your@email.com" />
                             <Field label="密码/授权码" configKey="SMTP_PASS" type="password" placeholder="授权码" />
                             <Field label="发件人邮箱" configKey="SMTP_FROM" placeholder="noreply@example.com" />
-                            <Field label="发件人名称" configKey="SMTP_FROM_NAME" placeholder="InsightLink" />
+                            <Field label="发件人名称" configKey="SMTP_FROM_NAME" placeholder="阅迹 ViewTrace" />
                         </div>
                         <Toggle label="启用 SSL/TLS" configKey="SMTP_SECURE" description="端口 465 通常需要开启" />
 
@@ -410,7 +410,7 @@ export default function AdminSettingsPage() {
                     <div className="space-y-4">
                         <h2 className="text-lg font-bold mb-4">全局配置</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Field label="网站名称" configKey="SITE_NAME" placeholder="InsightLink" />
+                            <Field label="网站名称" configKey="SITE_NAME" placeholder="阅迹 ViewTrace" />
                             <Field label="网站地址" configKey="SITE_URL" placeholder="https://example.com" />
                             <div className="md:col-span-2">
                                 <Field label="网站标语" configKey="SITE_SLOGAN" placeholder="让本地文件拥有&quot;在线生命&quot;" />
@@ -418,7 +418,7 @@ export default function AdminSettingsPage() {
                             <div className="md:col-span-2">
                                 <Field label="网站描述" configKey="SITE_DESCRIPTION" placeholder="简单拖拽，本地文件秒变在线直链。实时追踪访客行为，让每一次分享都心中有数。" />
                             </div>
-                            <Field label="页脚文字" configKey="FOOTER_TEXT" placeholder="© 2026 InsightLink Inc." />
+                            <Field label="页脚文字" configKey="FOOTER_TEXT" placeholder="© 2026 阅迹 ViewTrace" />
 
                             {/* ICP Config with better layout */}
                             <div className="space-y-1.5">

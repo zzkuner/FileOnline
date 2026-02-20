@@ -36,7 +36,7 @@ export async function sendEmail({ to, subject, text, html }: SendEmailParams): P
 
     try {
         const info = await transporter.sendMail({
-            from: process.env.SMTP_FROM || '"InsightLink" <noreply@example.com>',
+            from: process.env.SMTP_FROM || '"阅迹 ViewTrace" <noreply@example.com>',
             to,
             subject,
             text,
@@ -100,7 +100,7 @@ export async function sendVisitNotification({
                 </div>
             </div>
             <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
-                <p>&copy; ${new Date().getFullYear()} InsightLink. All rights reserved.</p>
+                <p>&copy; ${new Date().getFullYear()} 阅迹 ViewTrace. All rights reserved.</p>
             </div>
         </div>
     `

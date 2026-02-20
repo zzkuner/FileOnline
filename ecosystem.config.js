@@ -1,7 +1,7 @@
 module.exports = {
     apps: [
         {
-            name: 'fileonline',
+            name: 'viewtrace',
             script: 'npm',
             args: 'start',
             instances: 1,

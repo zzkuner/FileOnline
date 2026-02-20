@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { getConfig } from "@/lib/config";
 
 export async function generateMetadata() {
-  const siteName = await getConfig('SITE_NAME', 'InsightLink');
+  const siteName = await getConfig('SITE_NAME', '阅迹 ViewTrace');
   const siteSlogan = await getConfig('SITE_SLOGAN', '让本地文件拥有"在线生命"');
   const siteDescription = await getConfig('SITE_DESCRIPTION', '简单拖拽，本地文件秒变在线直链。实时追踪访客行为，让每一次分享都心中有数。');
 

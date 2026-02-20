@@ -42,8 +42,16 @@ RUN chown nextjs:nodejs .next
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# Copy prisma schema for migrations
-COPY --from=builder /app/prisma ./prisma
+
+# Copy prisma schema
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+
+# Copy prisma CLI for startup db sync
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+
+# Copy startup entrypoint script
+COPY --from=builder /app/scripts/docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 
 USER nextjs
 
@@ -53,4 +61,4 @@ ENV PORT 3000
 # set hostname to localhost
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["sh", "./docker-entrypoint.sh"]

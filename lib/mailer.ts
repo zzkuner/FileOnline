@@ -38,7 +38,7 @@ export async function sendMail(to: string, subject: string, html: string) {
         })
 
         await transporter.sendMail({
-            from: `"${cfg.SMTP_FROM_NAME || 'InsightLink'}" <${cfg.SMTP_FROM || cfg.SMTP_USER}>`,
+            from: `"${cfg.SMTP_FROM_NAME || '阅迹 ViewTrace'}" <${cfg.SMTP_FROM || cfg.SMTP_USER}>`,
             to,
             subject,
             html,
@@ -81,8 +81,8 @@ export async function sendNotification(userId: string, type: string, data: Recor
 
         const templates: Record<string, { subject: string; html: string }> = {
             register: {
-                subject: '欢迎注册 InsightLink',
-                html: `<h2>欢迎使用 InsightLink！</h2><p>您的账号 <strong>${user.email}</strong> 已创建成功。</p><p>赶快上传文件并创建追踪链接吧！</p>`
+                subject: '欢迎注册 阅迹 ViewTrace',
+                html: `<h2>欢迎使用 阅迹 ViewTrace！</h2><p>您的账号 <strong>${user.email}</strong> 已创建成功。</p><p>赶快上传文件并创建追踪链接吧！</p>`
             },
             tier_change: {
                 subject: '会员等级已变更',
