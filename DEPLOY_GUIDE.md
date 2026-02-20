@@ -1,203 +1,284 @@
-# 阅迹 ViewTrace 部署指南
+# FileOnline 服务器部署指南
 
-> **推荐方式：Docker 部署**
-> 所有依赖（数据库、文件存储）均通过容器管理，一键启动，无需在服务器手动安装 Node.js 或数据库。
-
----
-
-## 一、Docker 部署
-
-### 前置要求
-
-| 软件 | 版本 | 安装命令 |
-|---|---|---|
-| Docker | ≥ 20.x | [官方文档](https://docs.docker.com/engine/install/) |
-| Docker Compose | ≥ 2.x | 通常随 Docker 安装 |
-| Git | 任意 | `apt install git` |
+本文档详细说明了如何将 FileOnline 部署到生产服务器，支持 **Docker 部署（推荐）** 和 PM2 直接部署两种方式。
 
 ---
 
-### 第一步：拉取代码
+## 🐳 Docker 部署（推荐）
 
+Docker 部署是最简单、最稳定的方式，无需手动管理 Node.js 版本、PM2 或数据库安装。
+
+### 前置条件
+- 服务器已安装 Docker 和 Docker Compose
+- 克隆了代码仓库并配置好了 `.env` 文件（参考 `.env.example`，注意 `DATABASE_URL` 连接字符串中 host 应为 `postgres`，不是 `localhost`）
+
+### 首次部署
 ```bash
-mkdir -p /opt/viewtrace && cd /opt/viewtrace
-git clone https://github.com/zzkuner/FileOnline.git .
-```
-
----
-
-### 第二步：配置 `.env`
-
-```bash
-cp .env.production.example .env
-nano .env
-```
-
-**必填项说明：**
-
-```bash
-# 您的真实域名
-NEXTAUTH_URL=https://link.yourdomain.com
-NEXT_PUBLIC_APP_URL=https://link.yourdomain.com
-
-# 随机密钥，用命令生成: openssl rand -base64 32
-NEXTAUTH_SECRET=xxxxxx
-
-# 数据库密码（与下面 POSTGRES_PASSWORD 保持一致）
-POSTGRES_PASSWORD=your_db_password
-DATABASE_URL=postgresql://admin:your_db_password@postgres:5432/viewtrace?schema=public
-
-# 对象存储 (推荐 Cloudflare R2 或 AWS S3)
-STORAGE_TYPE=s3
-S3_ENDPOINT=https://xxxx.r2.cloudflarestorage.com
-S3_BUCKET=your-bucket
-S3_REGION=auto
-S3_ACCESS_KEY=your-key
-S3_SECRET_KEY=your-secret
-S3_PUBLIC_DOMAIN=https://pub.yourdomain.com
-
-# 首次启动自动创建的管理员
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=your_admin_password
-```
-
----
-
-### 第三步：启动服务
-
-```bash
+cd /www/wwwroot/link.piupa.com
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-等待 1~3 分钟（首次构建 Next.js 需要时间）。
-
-**启动流程说明：**
-1. Docker 构建应用镜像（含 Next.js 编译）
-2. 启动 PostgreSQL 数据库（等待健康检查通过）
-3. 启动应用容器，自动执行数据库同步 (`prisma db push`)
-4. 应用启动，自动创建管理员账号（通过 `ADMIN_EMAIL` / `ADMIN_PASSWORD`）
-
----
-
-### 第四步：配置 Nginx 反向代理
-
-创建或编辑 Nginx 站点配置 `/etc/nginx/conf.d/viewtrace.conf`：
-
-```nginx
-server {
-    listen 80;
-    server_name link.yourdomain.com;
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name link.yourdomain.com;
-
-    ssl_certificate     /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
-
-    # 允许上传最大 500MB 文件
-    client_max_body_size 500M;
-
-    location / {
-        proxy_pass         http://localhost:3000;
-        proxy_http_version 1.1;
-
-        # WebSocket 支持
-        proxy_set_header Upgrade    $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-
-        # 传递真实 IP
-        proxy_set_header Host              $host;
-        proxy_set_header X-Real-IP         $remote_addr;
-        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
+### 查看日志
 ```bash
-nginx -t && nginx -s reload
+docker compose -f docker-compose.prod.yml logs app -f
 ```
-
----
-
-### 验证部署
-
-```bash
-# 查看容器状态（app、postgres 应均为 Up）
-docker compose -f docker-compose.prod.yml ps
-
-# 查看应用启动日志
-docker logs viewtrace-app --tail 50
-```
-
-正常输出应包含：
+启动成功时应看到：
 ```
 ✅ Database schema is up to date.
-✅ Default admin created: admin@example.com
-🚀 Starting ViewTrace 阅迹...
+✓ Ready in xxxms
+✅ Seeded N config values from .env into SystemConfig
+✅ Default admin created: your@email.com
 ```
 
----
-
-## 二、日常更新
-
+### 日常更新
 ```bash
-cd /opt/insightlink
-
-# 1. 拉取最新代码
 git pull origin main
-
-# 2. 重新构建并重启
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-新版本启动时，`docker-entrypoint.sh` 会自动同步数据库 schema 变更，无需手动操作。
-
----
-
-## 三、常用运维命令
-
+### 常用管理命令
 ```bash
-# 查看实时日志
-docker logs -f viewtrace-app
+# 查看容器状态
+docker compose -f docker-compose.prod.yml ps
 
-# 重启应用
-docker compose -f docker-compose.prod.yml restart app
-
-# 进入容器调试
-docker exec -it viewtrace-app sh
-
-# 停止所有服务
+# 停止服务
 docker compose -f docker-compose.prod.yml down
 
-# 停止并清除数据库数据（⚠️ 危险，不可恢复）
-docker compose -f docker-compose.prod.yml down -v
+# 查看实时日志
+docker compose -f docker-compose.prod.yml logs app -f
+```
+
+### 数据持久化
+所有数据存储在网站目录下的 `data/` 文件夹：
+- `data/postgres/` — 数据库文件
+- `data/uploads/` — 用户上传文件
+
+---
+
+
+## 1. 环境准备
+
+确保您的服务器已安装以下软件：
+-   **Node.js**: 建议版本 v18 或更高。
+-   **Git**: 用于代码版本控制。
+-   **PM2**: 用于进程守护和管理 (推荐安装: `npm install -g pm2`)。
+
+## 6. 验证环境配置
+应用启动后，您可以按以下方法检查环境变量是否正确已生效：
+
+### 6.1 查看 PM2 加载的变量
+```bash
+# 查看进程 ID 为 0 的全部变量 (更可靠)
+pm2 show 0
+# 或者
+pm2 env 0
+```
+如果不正确，请先修改 `.env` 配置文件，然后执行：
+```bash
+pm2 restart fileonline
+```
+
+### 6.2 在线测试 (Admin Panel) (推荐)
+1.  登录管理员后台 -> 设置。
+2.  使用“邮件配置”的 **发送测试邮件** 按钮 (Test Email) 验证 SMTP 配置。
+3.  使用“存储配置”的 **测试存储连接** 按钮 (Test Storage) 验证 R2/S3 配置。
+4.  如果任何报错，系统会显示详细的错误原因。
+
+## 2. 首次部署 (Initial Setup)
+
+如果您是第一次在服务器上部署该项目，请按照以下步骤操作。
+
+### 2.1 获取代码
+
+由于项目私有或重置过历史，推荐使用 Git 初始化方式：
+
+```bash
+# 创建并进入目录
+mkdir -p /www/wwwroot/link
+cd /www/wwwroot/link
+
+# 初始化 Git
+git init
+git config --global --add safe.directory /www/wwwroot/link
+
+# 添加远程仓库
+git remote add origin https://github.com/zzkuner/FileOnline.git
+
+# 拉取代码 (强制覆盖)
+git fetch origin main
+git reset --hard origin/main
+```
+
+### 2.2 配置环境变量
+
+项目根目录下需要 `.env` 文件来存储敏感配置（如数据库、S3 密钥）。
+**注意**：`.env` 文件**不会**随代码库下载，必须手动创建。
+
+```bash
+cp .env.example .env
+nano .env
+# 在此处填入您的真实数据库 URL、S3 配置、NEXTAUTH_SECRET 等
+```
+
+### 2.3 安装与构建
+
+```bash
+# 安装依赖
+npm install
+
+# 生成 Prisma 客户端
+npx prisma generate
+
+# 构建项目
+npm run build
+```
+
+### 2.4 启动服务 (使用 PM2)
+
+我们已提供 `ecosystem.config.js`，可一键启动：
+
+```bash
+pm2 start ecosystem.config.js
+```
+
+服务启动后，默认运行在 `3000` 端口。
+
+---
+
+## 3. 日常更新 (Updating)
+
+当您在本地开发并 Push 代码到 GitHub 后，请在服务器执行以下步骤更新：
+
+### 3.1 拉取最新代码
+
+```bash
+cd /www/wwwroot/link
+git pull origin main
+```
+*(如果遇到 "refusing to merge unrelated histories" 或冲突，可参考下方的故障排除)*
+
+### 3.2 重新构建与重启
+
+某些更新（如依赖变更、Prisma Schema 变更）需要重新安装或生成：
+
+```bash
+# 1. (可选) 如果 package.json 有变动
+npm install
+
+# 2. (可选) 如果 prisma/schema.prisma 有变动
+npx prisma generate
+npx prisma migrate deploy
+
+# 3. 重新构建 (前端/后端变更都需要)
+npm run build
+
+# 4. 重启服务
+pm2 restart fileonline
+```
+
+**简易更新命令组合：**
+```bash
+git pull && npm install && npm run build && pm2 restart fileonline
 ```
 
 ---
 
-## 四、常见问题
+## 4. 故障排除
 
-### 启动报错：`database "viewtrace" does not exist`
-PostgreSQL 容器初次启动需要几秒初始化，docker-compose 的 healthcheck 会自动等待。如果还是报错，等待 30 秒后重试：
+### Git 提示 "fatal: not a git repository"
+服务器目录丢失了 `.git` 文件夹。请参照 [2.1 获取代码](#21-获取代码) 重新初始化。
+
+### Git 提示 "fatal: detected dubious ownership"
+这是因为当前用户（如 root）不是该目录的所有者。Git 为了安全禁止了操作。
+解决方法（直接运行报错提示中的命令）：
 ```bash
-docker compose -f docker-compose.prod.yml restart app
+git config --global --add safe.directory /www/wwwroot/link.piupa.com
+```
+或者允许所有目录（更方便）：
+```bash
+git config --global --add safe.directory '*'
 ```
 
-### 上传大文件报 `413 Payload Too Large`
-确保 Nginx 配置了 `client_max_body_size 500M;` 并已 `nginx -s reload`。
-
-### 无法登录管理员账号
-检查 `.env` 中 `ADMIN_EMAIL` 和 `ADMIN_PASSWORD` 是否配置，查看启动日志确认是否创建成功：
+### Git 提示 "fatal: $HOME not set"
+如果提示找不到 HOME 变量，请先设置它（临时）：
 ```bash
-docker logs viewtrace-app | grep -i admin
+export HOME=/root
+git config --global --add safe.directory '*'
+```
+
+### Git 拉取报错 (Head 冲突 / History Mismatch)
+如果我们强制重置了 GitHub 仓库历史（Force Push），服务器端需要强制重置：
+
+```bash
+git fetch origin main
+git reset --hard origin/main
+```
+*注意：这会丢弃服务器上所有未提交的本地修改（`.env` 文件不受影响）。*
+
+### 启动后访问报错 / 500 Error
+1.  检查日志：`pm2 logs fileonline`
+2.  检查 `.env` 配置是否正确。
+3.  确保执行了 `npx prisma generate`。
+
+### 常见的构建/启动错误
+-   **Permission denied (node_modules/.bin/next OR @prisma/engines)**:
+    如果构建或启动时提示 `EACCES` 权限错误，请运行以下修复命令：
+    ```bash
+    chmod +x node_modules/.bin/*
+    chmod -R +x node_modules/@prisma/engines
+    ```
+-   **pm2: command not found**:
+    说明没有安装 PM2，请运行：
+    ```bash
+    npm install -g pm2
+    ```
+    ```
+-   **PM2 提示 "Process or Namespace not found"**:
+    说明应用当前没有在运行（可能被杀掉了，或者 PM2 守护进程刚重启）。请使用 `start` 命令重新启动：
+    ```bash
+    pm2 start ecosystem.config.js
+    ```
+-   **Node.js Version Mismatch**:
+    如果提示 `Node.js version ">=20.9.0" is required`，您需要升级 Node.js。
+    
+    **推荐使用 `n` 工具升级：**
+    ```bash
+    npm install -g n
+    n 20
+    hash -r  # 刷新路径
+    ```
+  
+### **严重：命令执行提示 "Killed" (系统内存不足/OOM)**
+如果运行 `pm2`, `npm`, 甚至 `bt` 命令都直接显示 `Killed`，说明系统内存耗尽，触发了 Linux 的自我保护机制。
+
+**解决方法：增加虚拟内存 (Swap)**
+请依次运行以下命令（即使您的物理内存很大，Node.js 启动瞬间也可能触发杀手）：
+```bash
+# 1. 停止所有占用内存的进程
+pkill -f node
+pkill -f pm2
+
+# 2. 创建 2GB 的 Swap 分区
+dd if=/dev/zero of=/swapfile bs=1M count=2048
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+
+# 3. 验证 (确宝 Swap 行不为 0)
+free -h
+
+# 4. 重新启动
+export HOME=/root
+pm2 start ecosystem.config.js
 ```
 
 ---
 
-## 五、本地 MinIO（替代 S3/R2）
+## 5. 常用 PM2 命令
 
-如果您不想使用云端对象存储，可以启用 `docker-compose.prod.yml` 中被注释的 `minio` 服务，并在 `.env` 中设置 `STORAGE_TYPE=minio`。
+-   查看状态：`pm2 status`
+-   查看日志：`pm2 logs fileonline`
+-   重启应用：`pm2 restart fileonline`
+-   停止应用：`pm2 stop fileonline`
+-   删除应用（如果配置错了想重来）：`pm2 delete fileonline`
+-   保存当前进程列表（开机自启）：`pm2 save`
