@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
         const configs = await prisma.systemConfig.findMany()
         const result: Record<string, string> = {}
-        configs.forEach(c => { result[c.key] = c.value })
+        configs.forEach((c: { key: string; value: string }) => { result[c.key] = c.value })
 
         return NextResponse.json(result)
     } catch (error) {
