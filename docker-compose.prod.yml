@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build:
@@ -28,11 +26,10 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin}" ]
       interval: 5s
       timeout: 5s
       retries: 10
-
   # --- 可选：本地 MinIO 对象存储 ---
   # 如果您不使用 S3/R2，可以取消以下注释并在 .env 中设置 STORAGE_TYPE=minio
   # minio:
