@@ -17,7 +17,29 @@ export default function PDFViewer({ src, onEvent }: PDFViewerProps) {
     const [numPages, setNumPages] = useState<number>(0)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    // Pre-fetch PDF binary on main thread to avoid worker CORS issues
+    const [pdfData, setPdfData] = useState<{ data: Uint8Array } | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
+
+    // Fetch PDF content on the main thread
+    useEffect(() => {
+        if (!src) return
+        setLoading(true)
+        setError(null)
+        setPdfData(null)
+
+        fetch(src)
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+                return res.arrayBuffer()
+            })
+            .then(buf => setPdfData({ data: new Uint8Array(buf) }))
+            .catch(err => {
+                console.error('PDF fetch error:', err)
+                setError('无法加载PDF文件')
+                setLoading(false)
+            })
+    }, [src])
 
     function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
         setNumPages(numPages)
@@ -66,25 +88,27 @@ export default function PDFViewer({ src, onEvent }: PDFViewerProps) {
                 </div>
             )}
             <div ref={containerRef} className={`flex flex-col items-center bg-white py-4 ${loading || error ? 'hidden' : ''}`}>
-                <Document
-                    file={src}
-                    onLoadSuccess={onDocumentLoadSuccess}
-                    onLoadError={onDocumentLoadError}
-                    className="max-w-full bg-white"
-                    loading=""
-                >
-                    {Array.from(new Array(numPages), (_, index) => (
-                        <Page
-                            key={`page_${index + 1}`}
-                            pageNumber={index + 1}
-                            renderTextLayer={false}
-                            renderAnnotationLayer={false}
-                            className="shadow-lg mb-4 bg-white"
-                            width={Math.min(typeof window !== 'undefined' ? window.innerWidth * 0.9 : 800, 900)}
-                            loading=""
-                        />
-                    ))}
-                </Document>
+                {pdfData && (
+                    <Document
+                        file={pdfData}
+                        onLoadSuccess={onDocumentLoadSuccess}
+                        onLoadError={onDocumentLoadError}
+                        className="max-w-full bg-white"
+                        loading=""
+                    >
+                        {Array.from(new Array(numPages), (_, index) => (
+                            <Page
+                                key={`page_${index + 1}`}
+                                pageNumber={index + 1}
+                                renderTextLayer={false}
+                                renderAnnotationLayer={false}
+                                className="shadow-lg mb-4 bg-white"
+                                width={Math.min(typeof window !== 'undefined' ? window.innerWidth * 0.9 : 800, 900)}
+                                loading=""
+                            />
+                        ))}
+                    </Document>
+                )}
             </div>
         </div>
     )
