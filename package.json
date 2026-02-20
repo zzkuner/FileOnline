@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "npx prisma db push && node scripts/create-admin.js && next start",
+    "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
