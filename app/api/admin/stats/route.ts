@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         })
 
         const files = await prisma.file.findMany({ select: { fileSize: true } })
-        const totalStorage = files.reduce((acc, file) => acc + file.fileSize, 0)
+        const totalStorage = files.reduce((acc: number, file) => acc + file.fileSize, 0)
 
         return NextResponse.json({
             stats: {
