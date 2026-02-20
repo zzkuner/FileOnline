@@ -10,7 +10,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./data/uploads:/app/public/uploads
+      - ./data/uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
