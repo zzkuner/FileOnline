@@ -180,11 +180,11 @@ export default function DashboardPage() {
 
         switch (file.status) {
             case 'READY':
-                return <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs font-medium">正常</span>
+                return <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs font-medium whitespace-nowrap">正常</span>
             case 'PROCESSING':
-                return <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs font-medium animate-pulse">处理中</span>
+                return <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs font-medium animate-pulse whitespace-nowrap">处理中</span>
             case 'FAILED':
-                return <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs font-medium">失败</span>
+                return <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs font-medium whitespace-nowrap">失败</span>
             default:
                 return null
         }
