@@ -23,20 +23,28 @@ export default function PDFViewer({ src, onEvent }: PDFViewerProps) {
 
     // Fetch PDF content on the main thread
     useEffect(() => {
-        if (!src) return
+        if (!src) {
+            setError('文件链接无效')
+            setLoading(false)
+            return
+        }
+
         setLoading(true)
         setError(null)
         setPdfData(null)
 
-        fetch(src)
+        console.log('[PDFViewer] Fetching PDF from:', src)
+
+        fetch(src, { credentials: 'same-origin' })
             .then(res => {
+                console.log('[PDFViewer] Response status:', res.status, res.statusText)
                 if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
                 return res.arrayBuffer()
             })
             .then(buf => setPdfData({ data: new Uint8Array(buf) }))
             .catch(err => {
-                console.error('PDF fetch error:', err)
-                setError('无法加载PDF文件')
+                console.error('[PDFViewer] Fetch failed, src was:', src, 'Error:', err)
+                setError(`无法加载PDF文件: ${err.message}`)
                 setLoading(false)
             })
     }, [src])

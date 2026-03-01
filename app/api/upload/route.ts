@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
                     fileType,
                     mimeType: file.type,
                     fileSize: buffer.length,
-                    status: fileType === 'VIDEO' ? 'PROCESSING' : 'READY',
+                    status: 'READY',
                     processedPath: null, // 重置处理路径
                     metadata: JSON.stringify({
                         uploadedAt: new Date().toISOString(),
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
                     fileType,
                     mimeType: file.type,
                     fileSize: buffer.length,
-                    status: fileType === 'VIDEO' ? 'PROCESSING' : 'READY', // 视频需要转码
+                    status: 'READY',
                     metadata: JSON.stringify({
                         uploadedAt: new Date().toISOString()
                     })
