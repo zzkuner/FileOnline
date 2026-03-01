@@ -5,11 +5,8 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 
-// Configure worker using local node_modules to avoid CDN version mismatch
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-).toString()
+// Configure worker - use local file to avoid CDN version mismatch
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
 interface PDFViewerProps {
     src: string
@@ -20,38 +17,19 @@ export default function PDFViewer({ src, onEvent }: PDFViewerProps) {
     const [numPages, setNumPages] = useState<number>(0)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    // Pre-fetch PDF binary on main thread to avoid worker CORS issues
-    const [pdfData, setPdfData] = useState<{ data: Uint8Array } | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
-    // Memoize to keep stable reference and avoid react-pdf unnecessary reload warning
-    const memoizedFile = useMemo(() => pdfData, [pdfData])
+    // Memoize the file prop so Document never sees a changed-but-equal reference
+    const memoizedFile = useMemo(() => ({ url: src }), [src])
 
-    // Fetch PDF content on the main thread
+    // Reset state when src changes
     useEffect(() => {
         if (!src) {
             setError('文件链接无效')
             setLoading(false)
             return
         }
-
         setLoading(true)
         setError(null)
-        setPdfData(null)
-
-        console.log('[PDFViewer] Fetching PDF from:', src)
-
-        fetch(src, { credentials: 'same-origin' })
-            .then(res => {
-                console.log('[PDFViewer] Response status:', res.status, res.statusText)
-                if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
-                return res.arrayBuffer()
-            })
-            .then(buf => setPdfData({ data: new Uint8Array(buf) }))
-            .catch(err => {
-                console.error('[PDFViewer] Fetch failed, src was:', src, 'Error:', err)
-                setError(`无法加载PDF文件: ${err.message}`)
-                setLoading(false)
-            })
     }, [src])
 
     function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
@@ -101,7 +79,7 @@ export default function PDFViewer({ src, onEvent }: PDFViewerProps) {
                 </div>
             )}
             <div ref={containerRef} className={`flex flex-col items-center bg-white py-4 ${loading || error ? 'hidden' : ''}`}>
-                {pdfData && (
+                {src && (
                     <Document
                         file={memoizedFile}
                         onLoadSuccess={onDocumentLoadSuccess}
