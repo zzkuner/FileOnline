@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
@@ -20,6 +20,8 @@ export default function PDFViewer({ src, onEvent }: PDFViewerProps) {
     // Pre-fetch PDF binary on main thread to avoid worker CORS issues
     const [pdfData, setPdfData] = useState<{ data: Uint8Array } | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
+    // Memoize to keep stable reference and avoid react-pdf unnecessary reload warning
+    const memoizedFile = useMemo(() => pdfData, [pdfData])
 
     // Fetch PDF content on the main thread
     useEffect(() => {
@@ -98,7 +100,7 @@ export default function PDFViewer({ src, onEvent }: PDFViewerProps) {
             <div ref={containerRef} className={`flex flex-col items-center bg-white py-4 ${loading || error ? 'hidden' : ''}`}>
                 {pdfData && (
                     <Document
-                        file={pdfData}
+                        file={memoizedFile}
                         onLoadSuccess={onDocumentLoadSuccess}
                         onLoadError={onDocumentLoadError}
                         className="max-w-full bg-white"
