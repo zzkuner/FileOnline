@@ -5,8 +5,11 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 
-// Configure worker - use local file to avoid CDN access issues
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+// Configure worker using local node_modules to avoid CDN version mismatch
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url,
+).toString()
 
 interface PDFViewerProps {
     src: string
