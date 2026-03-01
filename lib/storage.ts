@@ -4,50 +4,15 @@ import path from 'path';
 import fs from 'fs/promises';
 import { createReadStream, createWriteStream } from 'fs';
 import { pipeline } from 'stream/promises';
-import { prisma } from '@/lib/db';
 import crypto from 'crypto';
+import { getStorageConfig } from '@/lib/storage-config';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
-const LOCAL_SECRET = process.env.NEXTAUTH_SECRET || 'local-storage-secret-key'; // Use a consistent secret
+const LOCAL_SECRET = process.env.NEXTAUTH_SECRET || 'local-storage-secret-key';
 
-// ─── Dynamic Config from SystemConfig DB ────────────────────────────
-// 每次操作都从数据库读取最新配置，不缓存（admin 随时可能修改）
-async function getStorageConfig() {
-    try {
-        const configs = await (prisma as any).systemConfig.findMany({
-            where: {
-                key: {
-                    in: [
-                        'STORAGE_TYPE',
-                        'S3_ENDPOINT', 'S3_REGION', 'S3_ACCESS_KEY', 'S3_SECRET_KEY', 'S3_BUCKET',
-                    ]
-                }
-            }
-        });
-        const cfg: Record<string, string> = {};
-        configs.forEach((c: any) => { cfg[c.key] = c.value });
+export { getStorageConfig };
 
-        return {
-            storageType: cfg.STORAGE_TYPE || process.env.STORAGE_TYPE || 'local',
-            endpoint: cfg.S3_ENDPOINT || process.env.S3_ENDPOINT || process.env.MINIO_ENDPOINT || '',
-            region: cfg.S3_REGION || process.env.S3_REGION || 'us-east-1',
-            accessKey: cfg.S3_ACCESS_KEY || process.env.S3_ACCESS_KEY || process.env.MINIO_ACCESS_KEY || '',
-            secretKey: cfg.S3_SECRET_KEY || process.env.S3_SECRET_KEY || process.env.MINIO_SECRET_KEY || '',
-            bucket: cfg.S3_BUCKET || process.env.S3_BUCKET || process.env.MINIO_BUCKET_NAME || '',
-            publicDomain: cfg.S3_PUBLIC_DOMAIN || process.env.S3_PUBLIC_DOMAIN || '',
-        };
-    } catch (error) {
-        console.warn('Failed to read SystemConfig, falling back to local:', error);
-        return {
-            storageType: 'local',
-            endpoint: '',
-            region: 'us-east-1',
-            accessKey: '',
-            secretKey: '',
-            bucket: '',
-        };
-    }
-}
+// ─── S3 Client Factory ───────────────────────────────────────────────
 
 function createS3Client(cfg: { endpoint: string; region: string; accessKey: string; secretKey: string }) {
     return new S3Client({
@@ -96,41 +61,23 @@ export async function uploadFileToStorage(
     return key;
 }
 
-// ─── Get URL ─────────────────────────────────────────────────────────
+// ─── Get URL (always same-origin proxy to avoid browser CORS) ───────
 export async function getFileUrl(key: string, expiresIn = 3600): Promise<string> {
+    const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
+    const baseUrl = `/api/uploads/${key}`;
+    const signString = `${baseUrl}:${expiresAt}`;
+    const signature = crypto
+        .createHmac('sha256', LOCAL_SECRET)
+        .update(signString)
+        .digest('hex');
+    return `${baseUrl}?token=${signature}&expires=${expiresAt}`;
+}
+
+// ─── Get S3 Presigned URL (server-side only, used by proxy route) ────
+export async function getS3PresignedUrl(key: string, expiresIn = 3600): Promise<string> {
     const cfg = await getStorageConfig();
-
-    if (cfg.storageType === 'local') {
-        // Generate signed URL for local storage
-        const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
-        const baseUrl = `/api/uploads/${key}`;
-
-        // Create signature: HMAC-SHA256(path + expires, secret)
-        const signString = `${baseUrl}:${expiresAt}`;
-        const signature = crypto
-            .createHmac('sha256', LOCAL_SECRET)
-            .update(signString)
-            .digest('hex');
-
-        return `${baseUrl}?token=${signature}&expires=${expiresAt}`;
-    }
-
     const s3 = createS3Client(cfg);
-
-    // 如果配置了自定义域名，直接返回拼接的 URL (假设是公开访问)
-    if (cfg.publicDomain) {
-        // 移除末尾斜杠
-        const domain = cfg.publicDomain.replace(/\/$/, '');
-        // 确保 key 开头没有斜杠 (虽然 key 通常没有)
-        const safeKey = key.replace(/^\//, '');
-        return `${domain}/${safeKey}`;
-    }
-
-    const command = new GetObjectCommand({
-        Bucket: cfg.bucket,
-        Key: key,
-    });
-
+    const command = new GetObjectCommand({ Bucket: cfg.bucket, Key: key });
     return await getSignedUrl(s3, command, { expiresIn });
 }
 
